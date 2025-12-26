@@ -1,4 +1,4 @@
-from engine import solve_with_units, solve_goal_with_units, solve_target_auto
+from engine import solve_with_units, solve_goal_with_units, solve_target_auto, solve_targets_auto
 
 
 def main():
@@ -118,5 +118,13 @@ def main():
     )
     print(res)  
 
+    print("\n=== 多目标求解成功案例：rho,v,S -> L,CD ===")
+    res = solve_targets_auto(
+        category="tilt_totor",
+        known_inputs={"rho": "1.225 kg/m^3", "v": "80 m/s", "S": "20 m^2", "CL": "0.5"},
+        targets=["q", "L", "K", "NotExist"],
+    )
+    print(res)
+    
 if __name__ == "__main__":
     main()
