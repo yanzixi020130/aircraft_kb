@@ -1,0 +1,16 @@
+formulas:
+  - id: F1
+    name_zh: "升力公式"
+    expr: "L = q * S * CL"
+
+  - id: F2
+    name_zh: "阻力公式"
+    expr: "D = q * S * CD"
+
+  - id: F3
+    name_zh: "升阻比公式"
+    expr: "K = L / D"
+
+  - id: F4
+    name_zh: "动压公式"
+    expr: "q = 0.5 * rho * v^2"
