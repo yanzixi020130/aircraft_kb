@@ -233,7 +233,7 @@ def solve_with_units(
     formula_id: str,
     known_inputs: Dict[str, str],
     target: str,
-) -> Tuple[float, str, float]:
+) -> Dict[str, Any]:
     """
     Single equation solve. Auto-loads YAML by category.
     Return: (value, unit, residual)
@@ -275,52 +275,28 @@ def solve_with_units(
 # =========================
 # Main API 2: forward-chain multi-step solve (路线A)
 # =========================
-def solve_goal_with_units(
+def _forward_chain_all(
     *,
     category: str,
     known_inputs: Dict[str, str],
-    goal: str,
     max_steps: int = 50,
 ) -> Dict[str, Any]:
     """
-    Forward-chaining multi-step solve:
-    - Start from known_inputs
-    - Repeatedly scan formulas to see if any can solve a new variable
-    - Stop when goal is solved or no progress
-
-    Returns a dict:
+    Forward-chaining once, try to derive as many variables as possible.
+    Returns:
       {
-        "goal": goal,
-        "solved": bool,
-        "values": {var: (value, unit)},
-        "path": [{"formula_id":..., "target":..., "value":..., "unit":..., "residual":...}, ...]
+        "known_vals": {var: float},           # magnitudes in canonical units
+        "path": [ {formula_id, formula_name_zh, target, value, unit, residual}, ... ]
       }
     """
     quantities, eqs, symtab = _load_category_context(category)
-
-    if goal not in quantities:
-        raise KeyError(
-            f"goal '{goal}' not found in quantities of category '{category}'. "
-            f"Available: {sorted(quantities.keys())}"
-        )
-
     ureg = _pint_ureg()
     known_vals = _parse_known_inputs_to_magnitudes(ureg, quantities, known_inputs)
 
     path: List[Dict[str, Any]] = []
 
-    # If goal already provided
-    if goal in known_vals:
-        return {
-            "goal": goal,
-            "solved": True,
-            "values": {k: (known_vals[k], quantities[k].unit) for k in known_vals},
-            "path": path,
-        }
-
-    # forward chaining
     steps = 0
-    while steps < max_steps and goal not in known_vals:
+    while steps < max_steps:
         progressed = False
 
         for fid, info in eqs.items():
@@ -329,22 +305,20 @@ def solve_goal_with_units(
             if not vars_in_eq:
                 continue
 
-            # try solving any missing variable from this equation
             for target in vars_in_eq:
                 if target in known_vals:
                     continue
 
                 required = [v for v in vars_in_eq if v != target]
                 if all(v in known_vals for v in required):
-                    # we can solve target
                     try:
                         x = solve_one(eq, known_vals, target, symtab)
                     except Exception:
-                        # cannot solve due to algebraic constraints; skip
                         continue
 
                     known_vals[target] = x
                     res = _residual(eq, symtab, {**{k: known_vals[k] for k in required}, target: x})
+                    residual_ok = abs(res) < 1e-9
 
                     path.append(
                         {
@@ -354,10 +328,11 @@ def solve_goal_with_units(
                             "value": x,
                             "unit": quantities[target].unit,
                             "residual": res,
+                            "residual_ok": residual_ok,
                         }
                     )
                     progressed = True
-                    break  # solved one var, restart scanning (greedy)
+                    break
 
             if progressed:
                 break
@@ -367,12 +342,34 @@ def solve_goal_with_units(
 
         steps += 1
 
+    return {"known_vals": known_vals, "path": path}
+
+def solve_goal_with_units(
+    *,
+    category: str,
+    known_inputs: Dict[str, str],
+    goal: str,
+    max_steps: int = 50,
+) -> Dict[str, Any]:
+    quantities, eqs, symtab = _load_category_context(category)
+
+    if goal not in quantities:
+        raise KeyError(
+            f"goal '{goal}' not found in quantities of category '{category}'. "
+            f"Available: {sorted(quantities.keys())}"
+        )
+
+    out = _forward_chain_all(category=category, known_inputs=known_inputs, max_steps=max_steps)
+    known_vals = out["known_vals"]
+    path = out["path"]
+
     return {
         "goal": goal,
         "solved": goal in known_vals,
         "values": {k: (known_vals[k], quantities[k].unit) for k in known_vals},
         "path": path,
     }
+
 
 def _candidate_formulas_for_target(eqs, symtab, target: str):
     """
@@ -400,46 +397,89 @@ def _build_missing_chain(
 ):
     """
     Build reverse missing chain starting from target.
+
+    Scheme 2 (graph-safe):
+    - Prevent cycles by:
+      1) visited_targets: each target expanded once
+      2) used_formulas: avoid using the same formula repeatedly in the chain
+      3) parent_target: avoid immediate backtracking (A -> ... -> A)
     """
-    chain = []
-    visited = set()
+    chain: List[Dict[str, Any]] = []
+    visited_targets: set[str] = set()
+    used_formulas: set[str] = set()
 
-    def dfs(cur_target):
-        if cur_target in visited:
-            return
-        visited.add(cur_target)
-
+    def pick_best_formula(cur_target: str, parent_target: str | None):
+        """
+        Choose the best candidate formula for cur_target with loop-safe constraints.
+        Scoring:
+          - minimize missing count
+          - tie-breaker: minimize required count
+        Constraints:
+          - do not reuse formulas already used in chain
+          - avoid immediate backtracking: if parent_target is missing, prefer not selecting
+        """
         candidates = _candidate_formulas_for_target(eqs, symtab, cur_target)
         if not candidates:
+            return None  # no formula can solve this target
+
+        scored = []
+        for fid, eq, vars_in_eq in candidates:
+            if fid in used_formulas:
+                continue  # prevent same formula being used multiple times in chain
+
+            required = sorted(set(vars_in_eq) - {cur_target})
+            missing = sorted(v for v in required if v not in known_vals)
+
+            # avoid immediate backtracking if possible
+            backtrack_penalty = 1 if (parent_target is not None and parent_target in missing) else 0
+
+            scored.append(
+                (
+                    len(missing),              # primary: fewer missing
+                    backtrack_penalty,         # secondary: avoid backtracking
+                    len(required),             # tertiary: fewer required
+                    fid,
+                    eq,
+                    vars_in_eq,
+                    required,
+                    missing,
+                )
+            )
+
+        if not scored:
+            return None
+
+        scored.sort()
+        _, _, _, fid, eq, vars_in_eq, required, missing = scored[0]
+        return fid, eq, vars_in_eq, required, missing
+
+    def dfs(cur_target: str, parent_target: str | None = None):
+        if cur_target in visited_targets:
+            return
+        visited_targets.add(cur_target)
+
+        picked = pick_best_formula(cur_target, parent_target)
+        if picked is None:
             return
 
-        # choose the formula with minimal missing inputs
-        best = None
-        best_missing = None
+        fid, eq, vars_in_eq, required, missing = picked
+        used_formulas.add(fid)
 
-        for fid, eq, vars_in_eq in candidates:
-            required = set(vars_in_eq) - {cur_target}
-            missing = sorted(v for v in required if v not in known_vals)
-            if best is None or len(missing) < len(best_missing):
-                best = (fid, eq, vars_in_eq)
-                best_missing = missing
-
-        fid, eq, vars_in_eq = best
-        required = sorted(set(vars_in_eq) - {cur_target})
-
-        chain.append({
-            "target": cur_target,
-            "formula_id": fid,
-            "formula_name_zh": eqs[fid]["name_zh"],
-            "required": required,
-            "missing": best_missing,
-        })
+        chain.append(
+            {
+                "target": cur_target,
+                "formula_id": fid,
+                "formula_name_zh": eqs[fid]["name_zh"],
+                "required": required,
+                "missing": missing,
+            }
+        )
 
         # recurse on missing vars
-        for m in best_missing:
-            dfs(m)
+        for m in missing:
+            dfs(m, parent_target=cur_target)
 
-    dfs(target)
+    dfs(target, parent_target=None)
     return chain
 
 def solve_target_auto(
@@ -489,6 +529,7 @@ def solve_target_auto(
             try:
                 x = solve_one(eq, known_vals, target, symtab)
                 residual = _residual(eq, symtab, {**known_vals, target: x})
+                residual_ok = abs(residual) < 1e-9
                 return {
                     "status": "ok",
                     "mode": "single-step",
@@ -498,31 +539,30 @@ def solve_target_auto(
                     "used_formula": fid,
                     "used_formula_name_zh": eqs[fid]["name_zh"],
                     "residual": residual,
+                    "residual_ok": residual_ok,
                 }
             except Exception:
                 pass
 
     # Rule 3: multi-step forward chaining
-    multi = solve_goal_with_units(
-        category=category,
-        known_inputs=known_inputs,
-        goal=target,
-    )
+    out = _forward_chain_all(category=category, known_inputs=known_inputs)
+    known_vals2 = out["known_vals"]
+    path = out["path"]
 
-    if multi["solved"]:
-        val, unit = multi["values"][target]
+    if target in known_vals2:
+        val = known_vals2[target]
         return {
             "status": "ok",
             "mode": "multi-step",
             "target": target,
             "value": val,
-            "unit": unit,
-            "path": multi["path"],
+            "unit": quantities[target].unit,
+            "path": path,
         }
 
     # Rule 4: build reverse missing chain
     missing_chain = _build_missing_chain(
-        target, known_vals, quantities, eqs, symtab
+        target, known_vals2, quantities, eqs, symtab
     )
 
     return {
@@ -530,4 +570,119 @@ def solve_target_auto(
         "error_code": "INSUFFICIENT_INPUTS",
         "message": f"Cannot solve target '{target}' due to missing inputs",
         "missing_chain": missing_chain,
+    }
+
+def solve_targets_auto(
+    *,
+    category: str,
+    known_inputs: Dict[str, str],
+    targets: List[str],
+    max_steps: int = 50,
+) -> Dict[str, Any]:
+    quantities, eqs, symtab = _load_category_context(category)
+
+    # 初始已知（仅来自输入）
+    ureg = _pint_ureg()
+    known_vals_initial = _parse_known_inputs_to_magnitudes(ureg, quantities, known_inputs)
+
+    # 一次性前向链推导（复用中间量）
+    out = _forward_chain_all(category=category, known_inputs=known_inputs, max_steps=max_steps)
+    known_vals_all = out["known_vals"]
+    path_all = out["path"]
+
+    def path_until(t: str) -> List[Dict[str, Any]]:
+        """返回推导路径中从开始到首次得到 t 的子路径；如果没得到 t 返回空列表。"""
+        for i, step in enumerate(path_all):
+            if step["target"] == t:
+                return path_all[: i + 1]
+        return []
+
+    results: Dict[str, Any] = {}
+
+    for t in targets:
+        # Rule 0
+        if t not in quantities:
+            results[t] = {
+                "status": "error",
+                "error_code": "TARGET_NOT_FOUND",
+                "message": f"target '{t}' not found in quantities.yaml",
+                "details": {"available": sorted(quantities.keys())},
+            }
+            continue
+
+        # Rule 1：是否存在可解 t 的公式
+        candidates = _candidate_formulas_for_target(eqs, symtab, t)
+        if not candidates:
+            results[t] = {
+                "status": "error",
+                "error_code": "FORMULA_FOR_TARGET_NOT_FOUND",
+                "message": f"No formula can solve target '{t}'",
+            }
+            continue
+
+        # 已知就直接返回（可选：如果你不需要这个分支可以删）
+        if t in known_vals_initial:
+            results[t] = {
+                "status": "ok",
+                "mode": "given",
+                "target": t,
+                "value": known_vals_initial[t],
+                "unit": quantities[t].unit,
+            }
+            continue
+
+        # 先判断：是否能单步（基于 initial known，不用推导中间量）
+        single_ok = None
+        for fid, eq, vars_in_eq in candidates:
+            required = set(vars_in_eq) - {t}
+            if all(v in known_vals_initial for v in required):
+                try:
+                    x = solve_one(eq, known_vals_initial, t, symtab)
+                    residual = _residual(eq, symtab, {**known_vals_initial, t: x})
+                    residual_ok = abs(residual) < 1e-9
+                    single_ok = {
+                        "status": "ok",
+                        "mode": "single-step",
+                        "target": t,
+                        "value": x,
+                        "unit": quantities[t].unit,
+                        "used_formula": fid,
+                        "used_formula_name_zh": eqs[fid]["name_zh"],
+                        "residual": residual,
+                        "residual_ok": residual_ok,
+                    }
+                    break
+                except Exception:
+                    pass
+
+        if single_ok is not None:
+            results[t] = single_ok
+            continue
+
+        # 再看：多步推导是否已得到 t
+        if t in known_vals_all:
+            results[t] = {
+                "status": "ok",
+                "mode": "multi-step",
+                "target": t,
+                "value": known_vals_all[t],
+                "unit": quantities[t].unit,
+                "path": path_until(t),   # 只返回到 t 为止的路径，避免太长
+            }
+            continue
+
+        # 多步也失败：反向缺参链（用已推导的 known_vals_all 更准确）
+        missing_chain = _build_missing_chain(t, known_vals_all, quantities, eqs, symtab)
+        results[t] = {
+            "status": "error",
+            "error_code": "INSUFFICIENT_INPUTS",
+            "message": f"Cannot solve target '{t}' due to missing inputs",
+            "missing_chain": missing_chain,
+        }
+
+    return {
+        "status": "ok",
+        "category": category,
+        "targets": targets,
+        "results": results,
     }
