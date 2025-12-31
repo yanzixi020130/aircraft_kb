@@ -1,0 +1,27 @@
+constraints:
+  - id: C_climb_TW
+    name_zh: 爬升约束(T/W)
+    expr: TW - (G + 2*sqrt(CD0/(pi*A*e)))
+    op: ">="
+    rhs: 0
+    tol: 1e-9
+    severity: hard
+    tags: [performance, climb]
+
+  - id: C_takeoff_power_li
+    name_zh: 起飞功率约束(锂电池兜底)
+    expr: P_li_max + P_fc - P_Load_max
+    op: ">="
+    rhs: 0
+    tol: 1e-9
+    severity: hard
+    tags: [power, takeoff]
+
+  - id: C_cruise_power_fc
+    name_zh: 巡航功率约束(燃料电池)
+    expr: P_fc - P_VCMAX
+    op: ">="
+    rhs: 0
+    tol: 1e-9
+    severity: hard
+    tags: [power, cruise]
