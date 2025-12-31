@@ -1,16 +1,216 @@
 formulas:
-  - id: F1
+  - id: F_lift
     name_zh: "升力公式"
-    expr: "L = q * S * CL"
+    expr: "L = q * Swing * CL"
 
-  - id: F2
+  - id: F_drag
     name_zh: "阻力公式"
-    expr: "D = q * S * CD"
+    expr: "D = q * Swing * CD"
 
-  - id: F3
+  - id: F_lift_to_drag
     name_zh: "升阻比公式"
     expr: "K = L / D"
 
-  - id: F4
+  - id: F_dynamic_pressure
     name_zh: "动压公式"
-    expr: "q = 0.5 * rho * v^2"
+    expr: "q = 0.5 * rhoc * Vc^2"
+
+  - id: F_lift_equals_weight
+    name_zh: "平飞条件下升力等于重量"
+    expr: L = W0 * g
+
+  - id: F_reynolds_number
+    name_zh: "雷诺数定义公式"
+    expr: Re = rhoc * Vc * b / mu
+
+  - id: F_thickness_ratio
+    name_zh: "翼型厚度比定义公式"
+    expr: tc = thick / c
+
+  - id: F_max_thrust_from_power
+    name_zh: "最大推力与最大功率及速度关系"
+    expr: Tmax = Pmax / Vmax
+
+  - id: F_wing_loading
+    name_zh: "翼载荷定义公式"
+    expr: WS = W0 / Swing
+
+  - id: F_wingspan_from_aspect_ratio_area
+    name_zh: "翼展与展弦比及机翼面积关系"
+    expr: B = (A * Swing) ^ 0.5
+
+  - id: F_root_chord_trapezoidal_wing
+    name_zh: "梯形翼翼根弦长计算公式"
+    expr: Cr = 2 * Swing / (B * (1 + lambda))
+
+  - id: F_tip_chord_from_root_chord_taper
+    name_zh: 梯形翼翼梢弦长计算公式
+    expr: Ct = Cr / lambda
+
+  - id: F_mean_aerodynamic_chord_trapezoidal_wing
+    name_zh: 梯形翼平均空气动力弦计算公式
+    expr: cbar = 2/3 * Cr * (1 + lambda + lambda^2) / (1 + lambda)
+
+  - id: F_wetted_area_estimation
+    name_zh: 湿面积估算公式
+    expr: Swetted = pi * lf * df + 2 * Swing + 3 * (0.2 * Swing)
+
+  - id: F_fuselage_length_from_mass
+    name_zh: 机身长度与质量的经验计算公式
+    expr: Lf = kl * W0^(1/3)
+
+  - id: F_fuselage_diameter_from_mass
+    name_zh: 机身直径与质量的经验计算公式
+    expr: Df = kd * W0^(1/3)
+
+  - id: F_max_speed_from_requirement_interval
+    name_zh: 最大速度需求区间取平均值公式
+    expr: Vmax = (Vmaxlow + Vmaxup) / 2
+
+  - id: F_mach_number_definition
+    name_zh: 马赫数定义公式
+    expr: Mach = Vc / a
+
+  - id: F_zero_lift_drag_from_wetted_area
+    name_zh: 零升阻力系数湿面积等效公式
+    expr: CD0 = Cf * (Swettedwing + Swettedbody + Swettedtail) / Sref
+
+  - id: F_clmax_takeoff_configuration
+    name_zh: 起飞构型最大升力系数计算公式
+    expr: CLmaxTO = CLmax + deltaLflap + deltaLslat
+
+  - id: F_drag_polar_parabolic
+    name_zh: 抛物线阻力极线公式
+    expr: CD = CD0 + k * CL^2
+
+  - id: F_induced_drag_factor_from_aspect_ratio_efficiency
+    name_zh: 诱导阻力系数与展弦比及效率关系公式
+    expr: k = 1 / (A * pi * e)
+
+  - id: F_oswald_efficiency_from_aspect_ratio
+    name_zh: 奥斯瓦尔效率因子经验计算公式
+    expr: e = 1.78 * (1 - 0.045 * A^0.68) - 0.46
+  
+  - id: F_optimal_lift_coefficient_min_drag
+    name_zh: 最小阻力条件下的最优升力系数公式
+    expr: CLstar = (CD0 / k) ^ 0.5
+
+  - id: F_max_lift_to_drag_ratio
+    name_zh: 最大升阻比定义公式
+    expr: K_max = CLstar / CDstar
+
+  - id: F_drag_polar_parabolic
+    name_zh: 抛物线最优阻力极线公式
+    expr: CDstar = CD0 + k * CLstar^2
+
+  - id: F_thrust_to_weight_takeoff_ground_roll
+    name_zh: 起飞滑跑距离约束下推重比需求公式
+    expr: TW = 1.05 * ((1.2 * WS) / (CLmaxTO * LTOG) + 0.5 * (3 * muG + 1 / K))
+
+  - id: F_thrust_to_weight_from_max_speed_drag
+    name_zh: 最大速度条件下推重比需求公式
+    expr: TW = 0.5 * rhoc * Vmax^2 * CD / WS
+
+  - id: F_wing_loading_from_stall_speed
+    name_zh: 失速速度约束下的翼载荷计算公式
+    expr: WS = 0.5 * rhoc * Vs^2 * CLmax
+
+  - id: F_wing_loading_from_drag_min_condition
+    name_zh: 最小阻力条件下的翼载荷公式
+    expr: WS = q * sqrt(pi * A * e * CD0)
+
+  - id: F_wing_weight_estimation
+    name_zh: 机翼重量经验估算公式
+    expr: Wwing = 3.9e-4 * Nz * W0 * A * Swing^0.48 * (cos(LambdaLE))^(-1.52) * (tc)^(-0.52)
+
+  - id: F_total_propulsion_efficiency
+    name_zh: 推进系统总效率分解公式
+    expr: eta = etat * etad * etalj * etajs 
+
+  - id: F_power_to_weight_required_climb
+    name_zh: 爬升工况单位重量所需功率公式
+    expr: PreqW0climb = (1 / (etat * etad * etalj)) * ((q * Vc * Swing / W0) * (CL + k * g^2 * W0^2 / (q^2 * Swing^2)) + V0 * sin(phi))
+
+  - id: F_battery_mass_from_required_power_sigma
+    name_zh: 电池重量与所需功率及放电等效系数关系公式
+    expr: Wbat = (1 / eta) * Preq / sigmadczh
+
+  - id: F_time_over_specific_energy_equivalent_sigma
+    name_zh: 工作时间与电池比能量的等效关系公式
+    expr: time / Ebatstar = 1 / sigmadczh
+
+  - id: F_single_propeller_vertical_acceleration_thrust
+    name_zh: 单个螺旋桨垂直加速所需拉力公式
+    expr: Tla = (W0 / np) * (g + a)
+
+  - id: F_maximum_required_thrust_with_safety_factor
+    name_zh: 考虑安全系数的最大所需拉力公式
+    expr: Tmax = asafe * Tla
+
+  - id: F_motor_propeller_total_efficiency
+    name_zh: 电机与螺旋桨总推进效率计算公式
+    expr: etampt = 1 / (((pi * CM * Dp) / (30 * KE * CT))^2 * Rm * Tla + (2 * pi * CM) / (Dp * sqrt(rhoc * CT^3)) * (Tla^0.5))
+
+  - id: F_back_emf_constant_from_motor_parameters
+    name_zh: 电机反电动势常数计算公式
+    expr: KE = (Um0 - Im0 * Rm) / (KV * Um0)  
+
+  - id: F_max_load_power_from_max_thrust_efficiency
+    name_zh: 最大拉力条件下负载功率计算公式
+    expr: Ploadmax = Tmax / etampt    
+
+  - id: F_max_single_propeller_load_power
+    name_zh: 单个螺旋桨最大拉力工况下负载功率公式
+    expr: Ploadmax1 = Tla / etampt
+
+  - id: F_battery_capacity_from_motor_current_time
+    name_zh: 电机电流与工作时间确定电池容量公式
+    expr: Q = nmotor * Imotor * time
+
+  - id: F_cruise_power_from_lift_to_drag_ratio
+    name_zh: 巡航状态所需功率计算公式
+    expr: Pvc = (W0 * g / Kvc) * Vc
+
+  - id: F_cruise_max_speed_power
+    name_zh: 最大巡航速度条件下所需功率公式
+    expr: Pvc_max = (W0 * g / Kvc) * Vcmax
+
+  - id: F_generated_heat_fuel_cell_stack
+    name_zh: 燃料电池堆产生热量计算公式
+    expr: Qcreated = nstack * Istack * (deltahf0 / (2 * F) - VVcell)
+
+  - id: F_air_cooling_heat_from_temperature_difference
+    name_zh: 风冷散热量计算公式
+    expr: Qaircooling = (Tstack - Teno) * mair * Cp
+
+  - id: F_liquid_cooling_heat_from_temperature_difference
+    name_zh: 液冷散热量计算公式
+    expr: Qliquid = (Tcoolingout - Tcoolingin) * mcooling * Cpcooling
+
+  - id: F_air_flow_from_stack_current
+    name_zh: 燃料电池风冷空气需求计算公式
+    expr: Qair = lambdaair * nstack * Istack / (4 * F * 0.21) * Mair
+
+  - id: F_hydrogen_flow_from_stack_current
+    name_zh: 燃料电池氢气消耗量计算公式
+    expr: QH2 = lambdaH2 * nstack * Istack / (2 * F) * MH2
+
+  - id: F_fold_location_from_wingspan
+    name_zh: 翼弯折点位置计算公式
+    expr: klocation = kbend * (B / 2)
+
+  - id: F_fold_chord_from_root_chord
+    name_zh: 弯折点处机翼弦长计算公式
+    expr: kchord = kchordfactor * Cr
+
+  - id: F_cruise_speed_from_max_speed
+    name_zh: 巡航速度经验估算公式
+    expr: Vc = kcruise * Vmax
+
+  - id: F_takeoff_lift_coefficient_from_clmax
+    name_zh: 起飞阶段升力系数经验估算公式
+    expr: CLTO = kLTO * CLmax
+
+  - id: F_payload_weight_from_takeoff_weight
+    name_zh: 有效载荷重量经验估算公式
+    expr: Wload = kload * W0

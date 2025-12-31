@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Tuple, Any
@@ -25,6 +26,7 @@ except Exception:
 # =========================
 KB_ROOT = r"C:\Project\aircraft_kb\data"
 TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
+_RESERVED_SYMBOL_MAP = {"lambda": "lambda_"}
 
 
 # =========================
@@ -34,6 +36,7 @@ TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
 class QuantitySpec:
     id: str
     symbol: str
+    symbol_latex: str
     name_zh: str
     unit: str
 
@@ -55,6 +58,7 @@ def load_quantities(path: str) -> Dict[str, QuantitySpec]:
         q = QuantitySpec(
             id=item["id"],
             symbol=item.get("symbol", item["id"]),
+            symbol_latex=item.get("symbol_latex", item.get("symbol", item["id"])),
             name_zh=item.get("name_zh", ""),
             unit=str(item.get("unit", "1")),
         )
@@ -77,8 +81,61 @@ def load_formulas(path: str) -> List[FormulaSpec]:
 # =========================
 # SymPy helpers
 # =========================
+def _safe_sym_name(name: str) -> str:
+    return _RESERVED_SYMBOL_MAP.get(name, name)
+
+
+def _sanitize_expr(expr: str) -> str:
+    out = expr
+    for raw, safe in _RESERVED_SYMBOL_MAP.items():
+        out = re.sub(rf"\b{re.escape(raw)}\b", safe, out)
+    return out
+
+
+def _symbol_latex_map(
+    quantities: Dict[str, QuantitySpec],
+    symtab: Dict[str, sp.Symbol],
+) -> Dict[sp.Symbol, str]:
+    return {symtab[qid]: quantities[qid].symbol_latex for qid in quantities if qid in symtab}
+
+
+def expr_to_latex(
+    *,
+    expr: str,
+    quantities: Dict[str, QuantitySpec],
+) -> str:
+    """
+    Convert an expression string to LaTeX using symbol_latex, wrapped with $...$.
+    """
+    symtab = _mk_symbols(list(quantities.keys()))
+    eq = _parse_equation(expr, symtab)
+    symbol_names = _symbol_latex_map(quantities, symtab)
+    return f"${sp.latex(eq, symbol_names=symbol_names)}$"
+
+
+def expr_to_latex_from_quantities(
+    *,
+    expr: str,
+) -> Dict[str, Any]:
+    """
+    Convert expr to LaTeX using quantities.yaml (with symbol_latex).
+    """
+    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
+    if not os.path.exists(q_path):
+        return {
+            "status": "error",
+            "error_code": "QUANTITIES_NOT_FOUND",
+            "message": f"[quantities not found] {q_path}",
+        }
+    quantities = load_quantities(q_path)
+    return {
+        "status": "ok",
+        "latex": expr_to_latex(expr=expr, quantities=quantities),
+    }
+
+
 def _mk_symbols(quantity_ids: List[str]) -> Dict[str, sp.Symbol]:
-    return {qid: sp.Symbol(qid, real=True) for qid in quantity_ids}
+    return {qid: sp.Symbol(_safe_sym_name(qid), real=True) for qid in quantity_ids}
 
 
 def _parse_equation(expr: str, symtab: Dict[str, sp.Symbol]) -> sp.Eq:
@@ -89,11 +146,12 @@ def _parse_equation(expr: str, symtab: Dict[str, sp.Symbol]) -> sp.Eq:
         raise ValueError(f"Equation must contain '=': {expr}")
 
     left, right = expr.split("=", 1)
-    left = left.strip().replace("^", "**")
-    right = right.strip().replace("^", "**")
+    left = _sanitize_expr(left.strip().replace("^", "**"))
+    right = _sanitize_expr(right.strip().replace("^", "**"))
 
-    lhs = parse_expr(left, local_dict=symtab, transformations=TRANSFORMS)
-    rhs = parse_expr(right, local_dict=symtab, transformations=TRANSFORMS)
+    parse_symtab = {_safe_sym_name(k): v for k, v in symtab.items()}
+    lhs = parse_expr(left, local_dict=parse_symtab, transformations=TRANSFORMS)
+    rhs = parse_expr(right, local_dict=parse_symtab, transformations=TRANSFORMS)
     return sp.Eq(lhs, rhs)
 
 
@@ -102,10 +160,11 @@ def _symbols_in_equation(eq: sp.Eq, symtab: Dict[str, sp.Symbol]) -> List[str]:
     Return variable ids (strings) that appear in eq and are in our symtab.
     """
     symset = set(symtab.values())
+    sym_to_id = {sym: qid for qid, sym in symtab.items()}
     ids = []
     for s in eq.free_symbols:
         if s in symset:
-            ids.append(s.name)
+            ids.append(sym_to_id[s])
     # stable order: by name
     return sorted(set(ids))
 
@@ -201,7 +260,7 @@ def _load_category_context(category: str) -> Tuple[Dict[str, QuantitySpec], Dict
     Load and parse quantities + formulas for a category, cached.
     Returns: (quantities_dict, eqs_dict, symtab)
     """
-    q_path = os.path.join(KB_ROOT, "quantities", category, "quantities.yaml")
+    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
     f_path = os.path.join(KB_ROOT, "formulas", category, "fomulas.yaml")  # keep your current spelling
 
     if not os.path.exists(q_path):
@@ -216,7 +275,8 @@ def _load_category_context(category: str) -> Tuple[Dict[str, QuantitySpec], Dict
     eqs = {
         f.id: {
             "eq": _parse_equation(f.expr, symtab),
-            "name_zh": f.name_zh
+            "name_zh": f.name_zh,
+            "expr": f.expr,
         }
         for f in formulas
     }
@@ -324,6 +384,8 @@ def _forward_chain_all(
                         {
                             "formula_id": fid,
                             "formula_name_zh": eqs[fid]["name_zh"],
+                            "formula_expr": eqs[fid]["expr"],
+                            "formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
                             "target": target,
                             "value": x,
                             "unit": quantities[target].unit,
@@ -470,6 +532,8 @@ def _build_missing_chain(
                 "target": cur_target,
                 "formula_id": fid,
                 "formula_name_zh": eqs[fid]["name_zh"],
+                "formula_expr": eqs[fid]["expr"],
+                "formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
                 "required": required,
                 "missing": missing,
             }
@@ -487,6 +551,7 @@ def solve_target_auto(
     category: str,
     known_inputs: Dict[str, str],
     target: str,
+    formula_overrides: Dict[str, str] | None = None,
 ):
     """
     Unified business-level solver:
@@ -513,6 +578,61 @@ def solve_target_auto(
         ureg, quantities, known_inputs
     )
 
+    # Rule 0.5: if formula override specified for target, enforce it
+    if formula_overrides and target in formula_overrides:
+        fid = formula_overrides[target]
+        if fid not in eqs:
+            return {
+                "status": "error",
+                "error_code": "FORMULA_ID_NOT_FOUND",
+                "message": f"Formula '{fid}' not found in category '{category}'",
+            }
+
+        eq = eqs[fid]["eq"]
+        vars_in_eq = _symbols_in_equation(eq, symtab)
+        if target not in vars_in_eq:
+            return {
+                "status": "error",
+                "error_code": "FORMULA_CANNOT_SOLVE_TARGET",
+                "message": f"Formula '{fid}' cannot solve target '{target}'",
+            }
+
+        required = sorted(set(vars_in_eq) - {target})
+        missing = sorted(v for v in required if v not in known_vals)
+        if missing:
+            return {
+                "status": "error",
+                "error_code": "INSUFFICIENT_INPUTS",
+                "message": f"Formula '{fid}' cannot solve target '{target}' due to missing inputs",
+                "details": {"missing": missing},
+            }
+
+        try:
+            x = solve_one(eq, known_vals, target, symtab)
+        except Exception as exc:
+            return {
+                "status": "error",
+                "error_code": "FORMULA_NO_SOLUTION",
+                "message": f"Formula '{fid}' failed to solve target '{target}'",
+                "details": {"error": str(exc)},
+            }
+
+        residual = _residual(eq, symtab, {**known_vals, target: x})
+        residual_ok = abs(residual) < 1e-9
+        return {
+            "status": "ok",
+            "mode": "single-step",
+            "target": target,
+            "value": x,
+            "unit": quantities[target].unit,
+            "used_formula": fid,
+            "used_formula_name_zh": eqs[fid]["name_zh"],
+            "used_formula_expr": eqs[fid]["expr"],
+            "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
+            "residual": residual,
+            "residual_ok": residual_ok,
+        }
+
     # Rule 1: any formula can solve target?
     candidates = _candidate_formulas_for_target(eqs, symtab, target)
     if not candidates:
@@ -538,6 +658,8 @@ def solve_target_auto(
                     "unit": quantities[target].unit,
                     "used_formula": fid,
                     "used_formula_name_zh": eqs[fid]["name_zh"],
+                    "used_formula_expr": eqs[fid]["expr"],
+                    "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
                     "residual": residual,
                     "residual_ok": residual_ok,
                 }
@@ -577,6 +699,7 @@ def solve_targets_auto(
     category: str,
     known_inputs: Dict[str, str],
     targets: List[str],
+    formula_overrides: Dict[str, str] | None = None,
     max_steps: int = 50,
 ) -> Dict[str, Any]:
     quantities, eqs, symtab = _load_category_context(category)
@@ -607,6 +730,66 @@ def solve_targets_auto(
                 "error_code": "TARGET_NOT_FOUND",
                 "message": f"target '{t}' not found in quantities.yaml",
                 "details": {"available": sorted(quantities.keys())},
+            }
+            continue
+
+        # Override: enforce formula for this target if specified
+        if formula_overrides and t in formula_overrides:
+            fid = formula_overrides[t]
+            if fid not in eqs:
+                results[t] = {
+                    "status": "error",
+                    "error_code": "FORMULA_ID_NOT_FOUND",
+                    "message": f"Formula '{fid}' not found in category '{category}'",
+                }
+                continue
+
+            eq = eqs[fid]["eq"]
+            vars_in_eq = _symbols_in_equation(eq, symtab)
+            if t not in vars_in_eq:
+                results[t] = {
+                    "status": "error",
+                    "error_code": "FORMULA_CANNOT_SOLVE_TARGET",
+                    "message": f"Formula '{fid}' cannot solve target '{t}'",
+                }
+                continue
+
+            required = sorted(set(vars_in_eq) - {t})
+            missing = sorted(v for v in required if v not in known_vals_initial)
+            if missing:
+                results[t] = {
+                    "status": "error",
+                    "error_code": "INSUFFICIENT_INPUTS",
+                    "message": f"Formula '{fid}' cannot solve target '{t}' due to missing inputs",
+                    "details": {"missing": missing},
+                }
+                continue
+
+            try:
+                x = solve_one(eq, known_vals_initial, t, symtab)
+            except Exception as exc:
+                results[t] = {
+                    "status": "error",
+                    "error_code": "FORMULA_NO_SOLUTION",
+                    "message": f"Formula '{fid}' failed to solve target '{t}'",
+                    "details": {"error": str(exc)},
+                }
+                continue
+
+            residual = _residual(eq, symtab, {**known_vals_initial, t: x})
+            residual_ok = abs(residual) < 1e-9
+            results[t] = {
+                "status": "ok",
+                "mode": "single-step",
+                "target": t,
+                "value": x,
+                "unit": quantities[t].unit,
+                "used_formula": fid,
+                "used_formula_name_zh": eqs[fid]["name_zh"],
+                "used_formula_expr": eqs[fid]["expr"],
+                "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
+                "residual": residual,
+                "residual_ok": residual_ok,
             }
             continue
 
@@ -648,6 +831,8 @@ def solve_targets_auto(
                         "unit": quantities[t].unit,
                         "used_formula": fid,
                         "used_formula_name_zh": eqs[fid]["name_zh"],
+                        "used_formula_expr": eqs[fid]["expr"],
+                        "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
                         "residual": residual,
                         "residual_ok": residual_ok,
                     }
@@ -685,4 +870,69 @@ def solve_targets_auto(
         "category": category,
         "targets": targets,
         "results": results,
+    }
+
+
+# =========================
+# Formula lookup by quantity
+# =========================
+def find_formulas_by_quantity(
+    *,
+    category: str,
+    quantity_id: str,
+) -> Dict[str, Any]:
+    """
+    Find formulas in a category that contain the given quantity id.
+    """
+    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
+    f_path = os.path.join(KB_ROOT, "formulas", category, "fomulas.yaml")
+
+    if not os.path.exists(q_path):
+        return {
+            "status": "error",
+            "error_code": "QUANTITIES_NOT_FOUND",
+            "message": f"[quantities not found] {q_path}",
+        }
+    if not os.path.exists(f_path):
+        return {
+            "status": "error",
+            "error_code": "FORMULAS_NOT_FOUND",
+            "message": f"[formulas not found] {f_path}",
+        }
+
+    quantities = load_quantities(q_path)
+    if quantity_id not in quantities:
+        return {
+            "status": "error",
+            "error_code": "QUANTITY_NOT_FOUND",
+            "message": f"quantity '{quantity_id}' not found in quantities.yaml",
+            "details": {"available": sorted(quantities.keys())},
+        }
+
+    formulas = load_formulas(f_path)
+    symtab = _mk_symbols(list(quantities.keys()))
+
+    matches: List[Dict[str, Any]] = []
+    for f in formulas:
+        try:
+            eq = _parse_equation(f.expr, symtab)
+        except Exception:
+            continue
+        vars_in_eq = _symbols_in_equation(eq, symtab)
+        if quantity_id in vars_in_eq:
+            matches.append(
+                {
+                    "formula_id": f.id,
+                    "formula_name_zh": f.name_zh,
+                    "expr": f.expr,
+                    "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+                }
+            )
+
+    return {
+        "status": "ok",
+        "category": category,
+        "formulas_path": f_path,
+        "quantity": quantity_id,
+        "formulas": matches,
     }
