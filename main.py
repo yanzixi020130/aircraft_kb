@@ -20,6 +20,11 @@ class FindFormulasByQuantityRequest(BaseModel):
     quantity_id: str
 
 
+class FindFormulasByQuantitiesRequest(BaseModel):
+    category: str
+    quantity_ids: list[str]
+
+
 @app.post("/formulas/by-quantity")
 def api_find_formulas_by_quantity(
     payload: FindFormulasByQuantityRequest,
@@ -28,6 +33,26 @@ def api_find_formulas_by_quantity(
         category=payload.category,
         quantity_id=payload.quantity_id,
     )
+
+
+@app.post("/formulas/by-quantities")
+def api_find_formulas_by_quantities(
+    payload: FindFormulasByQuantitiesRequest,
+) -> Dict[str, Any]:
+    """Batch query formulas that contain any of the requested quantity ids."""
+    results: Dict[str, Any] = {}
+    for qid in payload.quantity_ids:
+        results[qid] = find_formulas_by_quantity(
+            category=payload.category,
+            quantity_id=qid,
+        )
+
+    return {
+        "status": "ok",
+        "category": payload.category,
+        "quantity_ids": payload.quantity_ids,
+        "results": results,
+    }
 
 
 class SolveTargetsAutoRequest(BaseModel):

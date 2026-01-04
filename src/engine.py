@@ -29,6 +29,41 @@ TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
 _RESERVED_SYMBOL_MAP = {"lambda": "lambda_"}
 
 
+class LatexDict(dict):
+    def __repr__(self) -> str:
+        return _latex_safe_repr(self)
+
+    __str__ = __repr__
+
+
+def _latex_safe_repr(value: Any) -> str:
+    if isinstance(value, LatexDict):
+        value = dict(value)
+    if isinstance(value, dict):
+        items = [f"{_latex_safe_repr(k)}: {_latex_safe_repr(v)}" for k, v in value.items()]
+        return "{" + ", ".join(items) + "}"
+    if isinstance(value, list):
+        return "[" + ", ".join(_latex_safe_repr(v) for v in value) + "]"
+    if isinstance(value, tuple):
+        inner = ", ".join(_latex_safe_repr(v) for v in value)
+        return "(" + inner + ("," if len(value) == 1 else "") + ")"
+    if isinstance(value, str):
+        return "'" + value.replace("'", "\\'") + "'"
+    return repr(value)
+
+
+def _wrap_latex(value: Any) -> Any:
+    if isinstance(value, LatexDict):
+        return value
+    if isinstance(value, dict):
+        return LatexDict({k: _wrap_latex(v) for k, v in value.items()})
+    if isinstance(value, list):
+        return [_wrap_latex(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_wrap_latex(v) for v in value)
+    return value
+
+
 # =========================
 # Data models
 # =========================
@@ -122,16 +157,16 @@ def expr_to_latex_from_quantities(
     """
     q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
     if not os.path.exists(q_path):
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITIES_NOT_FOUND",
             "message": f"[quantities not found] {q_path}",
-        }
+        })
     quantities = load_quantities(q_path)
-    return {
+    return _wrap_latex({
         "status": "ok",
         "latex": expr_to_latex(expr=expr, quantities=quantities),
-    }
+    })
 
 
 def _mk_symbols(quantity_ids: List[str]) -> Dict[str, sp.Symbol]:
@@ -563,14 +598,14 @@ def solve_target_auto(
 
     # Rule 0: target exists?
     if target not in quantities:
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "TARGET_NOT_FOUND",
             "message": f"target '{target}' not found in quantities.yaml",
             "details": {
                 "available": sorted(quantities.keys())
             },
-        }
+        })
 
     # Parse known inputs to magnitudes
     ureg = _pint_ureg()
@@ -582,44 +617,44 @@ def solve_target_auto(
     if formula_overrides and target in formula_overrides:
         fid = formula_overrides[target]
         if fid not in eqs:
-            return {
+            return _wrap_latex({
                 "status": "error",
                 "error_code": "FORMULA_ID_NOT_FOUND",
                 "message": f"Formula '{fid}' not found in category '{category}'",
-            }
+            })
 
         eq = eqs[fid]["eq"]
         vars_in_eq = _symbols_in_equation(eq, symtab)
         if target not in vars_in_eq:
-            return {
+            return _wrap_latex({
                 "status": "error",
                 "error_code": "FORMULA_CANNOT_SOLVE_TARGET",
                 "message": f"Formula '{fid}' cannot solve target '{target}'",
-            }
+            })
 
         required = sorted(set(vars_in_eq) - {target})
         missing = sorted(v for v in required if v not in known_vals)
         if missing:
-            return {
+            return _wrap_latex({
                 "status": "error",
                 "error_code": "INSUFFICIENT_INPUTS",
                 "message": f"Formula '{fid}' cannot solve target '{target}' due to missing inputs",
                 "details": {"missing": missing},
-            }
+            })
 
         try:
             x = solve_one(eq, known_vals, target, symtab)
         except Exception as exc:
-            return {
+            return _wrap_latex({
                 "status": "error",
                 "error_code": "FORMULA_NO_SOLUTION",
                 "message": f"Formula '{fid}' failed to solve target '{target}'",
                 "details": {"error": str(exc)},
-            }
+            })
 
         residual = _residual(eq, symtab, {**known_vals, target: x})
         residual_ok = abs(residual) < 1e-9
-        return {
+        return _wrap_latex({
             "status": "ok",
             "mode": "single-step",
             "target": target,
@@ -631,16 +666,16 @@ def solve_target_auto(
             "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
             "residual": residual,
             "residual_ok": residual_ok,
-        }
+        })
 
     # Rule 1: any formula can solve target?
     candidates = _candidate_formulas_for_target(eqs, symtab, target)
     if not candidates:
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "FORMULA_FOR_TARGET_NOT_FOUND",
             "message": f"No formula can solve target '{target}'",
-        }
+        })
 
     # Rule 2: try single-step first
     for fid, eq, vars_in_eq in candidates:
@@ -650,7 +685,7 @@ def solve_target_auto(
                 x = solve_one(eq, known_vals, target, symtab)
                 residual = _residual(eq, symtab, {**known_vals, target: x})
                 residual_ok = abs(residual) < 1e-9
-                return {
+                return _wrap_latex({
                     "status": "ok",
                     "mode": "single-step",
                     "target": target,
@@ -662,7 +697,7 @@ def solve_target_auto(
                     "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
                     "residual": residual,
                     "residual_ok": residual_ok,
-                }
+                })
             except Exception:
                 pass
 
@@ -673,26 +708,26 @@ def solve_target_auto(
 
     if target in known_vals2:
         val = known_vals2[target]
-        return {
+        return _wrap_latex({
             "status": "ok",
             "mode": "multi-step",
             "target": target,
             "value": val,
             "unit": quantities[target].unit,
             "path": path,
-        }
+        })
 
     # Rule 4: build reverse missing chain
     missing_chain = _build_missing_chain(
         target, known_vals2, quantities, eqs, symtab
     )
 
-    return {
+    return _wrap_latex({
         "status": "error",
         "error_code": "INSUFFICIENT_INPUTS",
         "message": f"Cannot solve target '{target}' due to missing inputs",
         "missing_chain": missing_chain,
-    }
+    })
 
 def solve_targets_auto(
     *,
@@ -865,12 +900,12 @@ def solve_targets_auto(
             "missing_chain": missing_chain,
         }
 
-    return {
+    return _wrap_latex({
         "status": "ok",
         "category": category,
         "targets": targets,
         "results": results,
-    }
+    })
 
 
 # =========================
@@ -888,26 +923,26 @@ def find_formulas_by_quantity(
     f_path = os.path.join(KB_ROOT, "formulas", category, "fomulas.yaml")
 
     if not os.path.exists(q_path):
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITIES_NOT_FOUND",
             "message": f"[quantities not found] {q_path}",
-        }
+        })
     if not os.path.exists(f_path):
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "FORMULAS_NOT_FOUND",
             "message": f"[formulas not found] {f_path}",
-        }
+        })
 
     quantities = load_quantities(q_path)
     if quantity_id not in quantities:
-        return {
+        return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITY_NOT_FOUND",
             "message": f"quantity '{quantity_id}' not found in quantities.yaml",
             "details": {"available": sorted(quantities.keys())},
-        }
+        })
 
     formulas = load_formulas(f_path)
     symtab = _mk_symbols(list(quantities.keys()))
@@ -929,10 +964,31 @@ def find_formulas_by_quantity(
                 }
             )
 
-    return {
+    return _wrap_latex({
         "status": "ok",
         "category": category,
         "formulas_path": f_path,
         "quantity": quantity_id,
         "formulas": matches,
-    }
+    })
+
+
+def find_formulas_by_quantities(
+    *,
+    category: str,
+    quantity_ids: List[str],
+) -> Dict[str, Any]:
+    """
+    Find formulas for multiple quantities in a category.
+    """
+    results: Dict[str, Any] = {}
+    for qid in quantity_ids:
+        out = find_formulas_by_quantity(category=category, quantity_id=qid)
+        results[qid] = out
+
+    return _wrap_latex({
+        "status": "ok",
+        "category": category,
+        "quantities": quantity_ids,
+        "results": results,
+    })
