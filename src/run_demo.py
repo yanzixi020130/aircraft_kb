@@ -1,4 +1,4 @@
-from engine import solve_with_units, solve_goal_with_units, solve_target_auto, solve_targets_auto, find_formulas_by_quantity
+from engine import solve_with_units, solve_goal_with_units, solve_target_auto, solve_targets_auto, find_formulas_by_quantity, find_formulas_by_quantities
 
 
 def main():
@@ -238,6 +238,17 @@ def main():
     res = find_formulas_by_quantity(
         category="tilt_totor",
         quantity_id="q",
+    )
+    print(res)
+    if res.get("status") == "ok":
+        print("\n[LaTeX]")
+        for f in res.get("formulas", []):
+            print(f"  {f['formula_id']}: {f['latex']}")
+
+        print("\n=== 查询包含指定多个物理量的公式（按类别） ===")
+    res = find_formulas_by_quantities(
+        category="tilt_totor",
+        quantity_ids=["q", "CL"],
     )
     print(res)
     if res.get("status") == "ok":

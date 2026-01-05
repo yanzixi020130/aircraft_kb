@@ -227,7 +227,7 @@ quantities:
 
   - id: pi
     symbol: pi
-    symbol_latex: pi
+    symbol_latex: \pi
     name_zh: 圆周率
     unit: '1'
     aliases:
