@@ -1,0 +1,194 @@
+[
+  {
+    "idx": 261,
+    "original": "\\tau = \\frac{V}{bI_y}\\int_z^{h / 2}z\\mathrm{d}A \\tag{14.36}",
+    "fixed": [
+      "\\tau = \\frac{V}{bI_y} \\int_z^{h/2} z \\, dA"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：移除 \\mathrm{d}A 中的 \\mathrm{}，标准化空格；未残缺，上下文完整描述公式含义。"
+  },
+  {
+    "idx": 262,
+    "original": "F_{\\mathrm{shear~buckle}} = KE(t / b)^2 \\tag{14.37}",
+    "fixed": [
+      "F_shear_buckle = KE (t / b)^2"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：将 \\mathrm{shear~buckle} 替换为下划线形式 'shear_buckle'，移除多余空格；上下文完整，无残缺。"
+  },
+  {
+    "idx": 263,
+    "original": "\\begin{array}{c}{M(x) = C_1\\sin (x / j) + C_2\\cos (x / j) + wj^2}\\\\ {}\\\\ {M_{\\max} = \\frac{D_1}{\\cos(x / j)} +wj^2} \\end{array} \\tag{14.39}",
+    "fixed": [
+      "M(x) = C_1 \\sin(x / j) + C_2 \\cos(x / j) + w j^2",
+      "M_max = \\frac{D_1}{\\cos(x / j)} + w j^2"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：将 array 中的两行公式拆分为独立公式；去修饰：移除多余空格和 {} 包裹，标准化表达式；上下文提及两个公式，均完整。"
+  },
+  {
+    "idx": 264,
+    "original": "\\tan \\left(\\frac{x_m}{j}\\right) = \\frac{D_2 - D_1\\cos(L / j)}{D_1\\sin(L / j)} \\tag{14.40}",
+    "fixed": [
+      "\\tan\\left(\\frac{x_m}{j}\\right) = \\frac{D_2 - D_1 \\cos(L / j)}{D_1 \\sin(L / j)}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化 \\cos 和 \\sin 前后空格；上下文明确引用该公式，无残缺。"
+  },
+  {
+    "idx": 265,
+    "original": "\\begin{array}{c}{j = \\sqrt{EI / P}}\\\\ {C_1 = \\frac{D_2 - D_1\\cos(L / j)}{\\sin(L / j)}}\\\\ {C_2 = D_1 = M_1 - wj^2}\\\\ {D_2 = M_2 - wj^2} \\end{array} \\tag{14.44}",
+    "fixed": [
+      "j = \\sqrt{EI / P}",
+      "C_1 = \\frac{D_2 - D_1 \\cos(L / j)}{\\sin(L / j)}",
+      "C_2 = D_1 = M_1 - w j^2",
+      "D_2 = M_2 - w j^2"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：四行公式独立；去修饰：移除多余 {}，标准化空格；上下文明确说明 'where' 后列出全部四个等式，完整。"
+  },
+  {
+    "idx": 266,
+    "original": "\\begin{array}{c}\\tau = Tr / I_p\\\\ \\phi = TL / GI_p \\end{array} \\tag{14.45}",
+    "fixed": [
+      "\\tau = T r / I_p",
+      "\\phi = T L / G I_p"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：两个公式独立；去修饰：标准化乘法空格（Tr → T r）；上下文提及 Eq. (14.45) 定义剪应力和角位移，完整。"
+  },
+  {
+    "idx": 267,
+    "original": "\\tau = T / 2At \\tag{14.47}",
+    "fixed": [
+      "\\tau = T / (2 A t)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：添加括号明确分母为 2At，标准化空格；上下文明确说明该公式用于非圆截面，完整。"
+  },
+  {
+    "idx": 268,
+    "original": "\\phi = \\frac{TL}{G}\\left(\\frac{s}{4A^2t}\\right) \\tag{14.48}",
+    "fixed": [
+      "\\phi = \\frac{T L}{G} \\left( \\frac{s}{4 A^2 t} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化乘法空格；上下文明确与 Eq. (14.47) 并列，完整。"
+  },
+  {
+    "idx": 269,
+    "original": "\\tau = \\frac{T}{\\alpha bt^2} \\tag{14.49}",
+    "fixed": [
+      "\\tau = \\frac{T}{\\alpha b t^2}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化 b 和 t^2 间空格；上下文说明用于矩形截面，完整。"
+  },
+  {
+    "idx": 270,
+    "original": "\\phi = \\frac{TL}{\\beta bt^3 G} \\tag{14.50}",
+    "fixed": [
+      "\\phi = \\frac{T L}{\\beta b t^3 G}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化乘法空格；上下文与 Eq. (14.49) 并列，完整。"
+  },
+  {
+    "idx": 271,
+    "original": "\\begin{array}{l}\\epsilon = (u_1 - u_2) / L\\\\ E = \\sigma /\\epsilon = (P / A) / [(u_1 - u_2) / L] \\end{array} \\tag{14.51}",
+    "fixed": [
+      "\\epsilon = (u_1 - u_2) / L",
+      "E = \\sigma / \\epsilon = (P / A) / [(u_1 - u_2) / L]"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：两个公式独立；去修饰：标准化 \\sigma /\\epsilon 为 \\sigma / \\epsilon；上下文定义应变和弹性模量，完整。"
+  },
+  {
+    "idx": 272,
+    "original": "P = \\frac{EA}{L} (u_1 - u_2) \\tag{14.53}",
+    "fixed": [
+      "P = \\frac{E A}{L} (u_1 - u_2)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化 E A 间空格；上下文明确为 'or' 后的公式，完整。"
+  },
+  {
+    "idx": 273,
+    "original": "\\begin{array}{l} P_1 = \\frac{EA}{L} (u_1 - u_2)\\\\ \\displaystyle P_2 = \\frac{EA}{L} (-u_1 + u_2) \\end{array} \\tag{14.55}",
+    "fixed": [
+      "P_1 = \\frac{E A}{L} (u_1 - u_2)",
+      "P_2 = \\frac{E A}{L} (-u_1 + u_2)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：两个公式独立；去修饰：标准化空格，移除 \\displaystyle；上下文明确说明两个载荷公式，完整。"
+  },
+  {
+    "idx": 274,
+    "original": "\\left\\{ \\begin{array}{l}P_1\\\\ P_2 \\end{array} \\right\\} = \\left[ \\begin{array}{cc}EA / L & -EA / L\\\\ -EA / L & EA / L \\end{array} \\right]\\left\\{ \\begin{array}{l}u_1\\\\ u_2 \\end{array} \\right\\} \\tag{14.56}",
+    "fixed": [
+      "\\begin{bmatrix} P_1 \\\\ P_2 \\end{bmatrix} = \\begin{bmatrix} \\frac{E A}{L} & -\\frac{E A}{L} \\\\ -\\frac{E A}{L} & \\frac{E A}{L} \\end{bmatrix} \\begin{bmatrix} u_1 \\\\ u_2 \\end{bmatrix}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：标准化矩阵表示为 bmatrix，标准化 EA/L 表达式；上下文明确为力-位移关系矩阵，完整。"
+  },
+  {
+    "idx": 275,
+    "original": "\\{P\\} = [k]\\{u\\} \\tag{14.57}",
+    "fixed": [
+      "\\{P\\} = [k] \\{u\\}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：添加 [k] 与 \\{u\\} 间空格；上下文说明这是通用形式，完整。"
+  },
+  {
+    "idx": 276,
+    "original": "\\begin{array}{r}\\left\\{ \\begin{array}{c}P_1\\\\ P_2 \\end{array} \\right\\} = \\left[ \\begin{array}{cc}EA_1 / L_1 & -EA_1 / L_1\\\\ -EA_1 / L_1 & EA_1 / L_1 \\end{array} \\right]\\left\\{ \\begin{array}{c}u_1\\\\ u_2 \\end{array} \\right\\} \\\\ \\left\\{ \\begin{array}{c}P_2\\\\ P_3 \\end{array} \\right\\} = \\left[ \\begin{array}{cc}EA_2 / L_2 & -EA_2 / L_2\\\\ -EA_2 / L_2 & EA_2 / L_2 \\end{array} \\right]\\left\\{ \\begin{array}{c}u_2\\\\ u_3 \\end{array} \\right\\} \\end{array} \\tag{14.58}",
+    "fixed": [
+      "\\begin{bmatrix} P_1 \\\\ P_2 \\end{bmatrix} = \\begin{bmatrix} \\frac{E A_1}{L_1} & -\\frac{E A_1}{L_1} \\\\ -\\frac{E A_1}{L_1} & \\frac{E A_1}{L_1} \\end{bmatrix} \\begin{bmatrix} u_1 \\\\ u_2 \\end{bmatrix}",
+      "\\begin{bmatrix} P_2 \\\\ P_3 \\end{bmatrix} = \\begin{bmatrix} \\frac{E A_2}{L_2} & -\\frac{E A_2}{L_2} \\\\ -\\frac{E A_2}{L_2} & \\frac{E A_2}{L_2} \\end{bmatrix} \\begin{bmatrix} u_2 \\\\ u_3 \\end{bmatrix}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分：两个独立的矩阵方程；去修饰：统一为 bmatrix，标准化表达式；上下文明确为两个元素的独立方程，完整。"
+  },
+  {
+    "idx": 277,
+    "original": "\\left\\{ \\begin{array}{c}P_{1}\\\\ P_{2}\\\\ P_{3} \\end{array} \\right\\} = \\left[ \\begin{array}{ccc}EA_{1} / L_{1} & -EA_{1} / L_{1} & 0\\\\ -EA_{1} / L_{1} & (EA_{1} / L_{1} + EA_{2} / L_{2}) & -EA_{2} / L_{2}\\\\ 0 & -EA_{2} / L_{2} & EA_{2} / L_{2} \\end{array} \\right]\\times \\left\\{ \\begin{array}{c}u_{1}\\\\ u_{2}\\\\ u_{3} \\end{array} \\right\\} \\tag{14.60}",
+    "fixed": [
+      "\\begin{bmatrix} P_1 \\\\ P_2 \\\\ P_3 \\end{bmatrix} = \\begin{bmatrix} \\frac{E A_1}{L_1} & -\\frac{E A_1}{L_1} & 0 \\\\ -\\frac{E A_1}{L_1} & \\frac{E A_1}{L_1} + \\frac{E A_2}{L_2} & -\\frac{E A_2}{L_2} \\\\ 0 & -\\frac{E A_2}{L_2} & \\frac{E A_2}{L_2} \\end{bmatrix} \\begin{bmatrix} u_1 \\\\ u_2 \\\\ u_3 \\end{bmatrix}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：移除 \\times，统一为 bmatrix，标准化表达式；上下文说明矩阵组装，完整。"
+  },
+  {
+    "idx": 278,
+    "original": "\\left\\{ \\begin{array}{c}P_{1}\\\\ P_{2}\\\\ P_{3} \\end{array} \\right\\} = \\left[ \\begin{array}{ccc}(2.5\\times 10^{7}) & (-2.5\\times 10^{7}) & 0\\\\ (-2.5\\times 10^{7}) & (3.4\\times 10^{7}) & (-9.2\\times 10^{6})\\\\ 0 & (-9.2\\times 10^{6}) & (9.2\\times 10^{6}) \\end{array} \\right]\\times \\left\\{ \\begin{array}{c}u_{1}\\\\ u_{2}\\\\ u_{3} \\end{array} \\right\\} \\tag{14.61}",
+    "fixed": [
+      "\\begin{bmatrix} P_1 \\\\ P_2 \\\\ P_3 \\end{bmatrix} = \\begin{bmatrix} 2.5 \\times 10^7 & -2.5 \\times 10^7 & 0 \\\\ -2.5 \\times 10^7 & 3.4 \\times 10^7 & -9.2 \\times 10^6 \\\\ 0 & -9.2 \\times 10^6 & 9.2 \\times 10^6 \\end{bmatrix} \\begin{bmatrix} u_1 \\\\ u_2 \\\\ u_3 \\end{bmatrix}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去修饰：移除多余括号和 \\times，标准化科学计数法；上下文为具体数值代入，完整。"
+  },
+  {
+    "idx": 279,
+    "original": "\\begin{array}{rl} & {\\left\\{ \\begin{array}{l}P_{1}\\\\ P_{2} \\end{array} \\right\\} = \\left[ \\begin{array}{ll}(2.5\\times 10^{7}) & (-2.5\\times 10^{7})\\\\ (-2.5\\times 10^{7}) & (3.5\\times 10^{7}) \\end{array} \\right]\\left\\{ \\begin{array}{l}u_{1}\\\\ u_{2} \\end{array} \\right\\}}\\\\ & {\\left[ \\begin{array}{ll}(1.5\\times 10^{-7}) & (1.1\\times 10^{-7})\\\\ (1.1\\times 10^{-7}) & (1.1\\times 10^{-7}) \\end{array} \\right]\\left\\{ \\begin{array}{l}P_{1}\\\\ P_{2} \\end{array} \\right\\} = \\left\\{ \\begin{array}{l}u_{1}\\\\ u_{2} \\end{array} \\right\\}}\\\\ & {\\left\\{ \\begin{array}{l}0.093\\\\ 0.077 \\end{array} \\right\\} = \\left\\{ \\begin{array}{l}u_{1}\\\\ u_{2} \\end{array} \\right\\}} \\end{array} \\tag{14.64}",
+    "fixed": [
+      "\\begin{

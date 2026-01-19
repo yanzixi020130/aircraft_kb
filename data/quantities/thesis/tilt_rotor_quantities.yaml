@@ -1,0 +1,966 @@
+quantities:
+  - id: W_Rotor
+    symbol: W_Rotor
+    symbol_latex: W_{Rotor}
+    name_zh: 旋翼总重量
+    unit: N
+  - id: W_blade
+    symbol: W_blade
+    symbol_latex: W_{blade}
+    name_zh: 叶片重量
+    unit: N
+  - id: W_hub
+    symbol: W_hub
+    symbol_latex: W_{hub}
+    name_zh: 旋翼毂重量
+    unit: N
+  - id: W_spin
+    symbol: W_spin
+    symbol_latex: W_{spin}
+    name_zh: 旋转部件重量
+    unit: N
+  - id: W_fold
+    symbol: W_fold
+    symbol_latex: W_{fold}
+    name_zh: 折叠部件重量
+    unit: N
+  - id: W_basic
+    symbol: W_basic
+    symbol_latex: W_{basic}
+    name_zh: 基本结构重量
+    unit: N
+  - id: chi_basic
+    symbol: chi_basic
+    symbol_latex: \chi_{basic}
+    name_zh: 基本重量修正系数
+    unit: "1"
+  - id: f_LGic
+    symbol: f_LGic
+    symbol_latex: f_{LGic}
+    name_zh: 起落架初始修正因子
+    unit: "1"
+  - id: f_LGret
+    symbol: f_LGret
+    symbol_latex: f_{LGret}
+    name_zh: 起落架回收修正因子
+    unit: "1"
+  - id: f_ramp
+    symbol: f_ramp
+    symbol_latex: f_{ramp}
+    name_zh: 坡道修正因子
+    unit: "1"
+  - id: W_MTO
+    symbol: W_MTO
+    symbol_latex: W_{MTO}
+    name_zh: 最大起飞重量
+    unit: N
+  - id: n_z
+    symbol: n_z
+    symbol_latex: n_{z}
+    name_zh: 垂直载荷系数
+    unit: "1"
+  - id: W_SD
+    symbol: W_SD
+    symbol_latex: W_{SD}
+    name_zh: 设计结构重量
+    unit: N
+  - id: S_lmtr
+    symbol: S_lmtr
+    symbol_latex: S_{l_{mtr}}
+    name_zh: 发动机安装面积
+    unit: m**2
+  - id: l
+    symbol: l
+    symbol_latex: l
+    name_zh: 参考长度
+    unit: m
+  - id: chi_wfold
+    symbol: chi_wfold
+    symbol_latex: \chi_{wfold}
+    name_zh: 折叠重量系数
+    unit: "1"
+  - id: f_wfold
+    symbol: f_wfold
+    symbol_latex: f_{wfold}
+    name_zh: 折叠重量因子
+    unit: "1"
+  - id: W_wing
+    symbol: W_wing
+    symbol_latex: W_{wing}
+    name_zh: 机翼重量
+    unit: N
+  - id: W_tip
+    symbol: W_tip
+    symbol_latex: W_{tip}
+    name_zh: 翼尖重量
+    unit: N
+  - id: chi_mar
+    symbol: chi_mar
+    symbol_latex: \chi_{mar}
+    name_zh: 余量系数
+    unit: "1"
+  - id: f_mar
+    symbol: f_mar
+    symbol_latex: f_{mar}
+    name_zh: 余量因子
+    unit: "1"
+  - id: chi_press
+    symbol: chi_press
+    symbol_latex: \chi_{press}
+    name_zh: 增压系统系数
+    unit: "1"
+  - id: f_press
+    symbol: f_press
+    symbol_latex: f_{press}
+    name_zh: 增压系统因子
+    unit: "1"
+  - id: W_Fuselage
+    symbol: W_Fuselage
+    symbol_latex: W_{Fuselage}
+    name_zh: 机身总重量
+    unit: N
+  - id: chi_ht
+    symbol: chi_ht
+    symbol_latex: \chi_{ht}
+    name_zh: 水平尾翼系数
+    unit: "1"
+  - id: S_ht
+    symbol: S_ht
+    symbol_latex: S_{ht}
+    name_zh: 水平尾翼面积
+    unit: m**2
+  - id: V_dive
+    symbol: V_dive
+    symbol_latex: V_{dive}
+    name_zh: 爬升速度
+    unit: m/s
+  - id: chi_vt
+    symbol: chi_vt
+    symbol_latex: \chi_{vt}
+    name_zh: 垂直尾翼系数
+    unit: "1"
+  - id: S_vt
+    symbol: S_vt
+    symbol_latex: S_{vt}
+    name_zh: 垂直尾翼面积
+    unit: m**2
+  - id: W_Empennage
+    symbol: W_Empennage
+    symbol_latex: W_{Empennage}
+    name_zh: 尾翼总重量
+    unit: N
+  - id: chi_LG
+    symbol: chi_LG
+    symbol_latex: \chi_{LG}
+    name_zh: 起落架系数
+    unit: "1"
+  - id: f_LG
+    symbol: f_LG
+    symbol_latex: f_{LG}
+    name_zh: 起落架因子
+    unit: "1"
+  - id: W_LG
+    symbol: W_LG
+    symbol_latex: W_{LG}
+    name_zh: 起落架重量
+    unit: N
+  - id: chi_LGret
+    symbol: chi_LGret
+    symbol_latex: \chi_{LGret}
+    name_zh: 起落架回收系数
+    unit: "1"
+  - id: W_LGret
+    symbol: W_LGret
+    symbol_latex: W_{LGret}
+    name_zh: 起落架回收部件重量
+    unit: N
+  - id: chi_LGrw
+    symbol: chi_LGrw
+    symbol_latex: \chi_{LGrw}
+    name_zh: 起落架舱系数
+    unit: "1"
+  - id: f_LGrw
+    symbol: f_LGrw
+    symbol_latex: f_{LGrw}
+    name_zh: 起落架舱因子
+    unit: "1"
+  - id: W_LGcw
+    symbol: W_LGcw
+    symbol_latex: W_{LGcw}
+    name_zh: 起落架舱重量
+    unit: N
+  - id: W_AG
+    symbol: W_AG
+    symbol_latex: W_{AG}
+    name_zh: 起落架系统总重量
+    unit: N
+  - id: chi_supt
+    symbol: chi_supt
+    symbol_latex: \chi_{supt}
+    name_zh: 支撑结构系数
+    unit: "1"
+  - id: f_airind
+    symbol: f_airind
+    symbol_latex: f_{airind}
+    name_zh: 进气修正因子
+    unit: "1"
+  - id: W_eng
+    symbol: W_eng
+    symbol_latex: W_{eng}
+    name_zh: 发动机总重量
+    unit: N
+  - id: N_eng
+    symbol: N_eng
+    symbol_latex: N_{eng}
+    name_zh: 发动机数量
+    unit: "1"
+  - id: W_oneeng
+    symbol: W_oneeng
+    symbol_latex: W_{oneeng}
+    name_zh: 单台发动机重量
+    unit: N
+  - id: chi_cowl
+    symbol: chi_cowl
+    symbol_latex: \chi_{cowl}
+    name_zh: 整流罩系数
+    unit: "1"
+  - id: S_nac
+    symbol: S_nac
+    symbol_latex: S_{nac}
+    name_zh: 发动机整流罩面积
+    unit: m**2
+  - id: chi_pylon
+    symbol: chi_pylon
+    symbol_latex: \chi_{pylon}
+    name_zh: 挂架系数
+    unit: "1"
+  - id: f_pylon
+    symbol: f_pylon
+    symbol_latex: f_{pylon}
+    name_zh: 挂架因子
+    unit: "1"
+  - id: W_pylon
+    symbol: W_pylon
+    symbol_latex: W_{pylon}
+    name_zh: 挂架重量
+    unit: N
+  - id: chi_airind
+    symbol: chi_airind
+    symbol_latex: \chi_{airind}
+    name_zh: 进气系统系数
+    unit: "1"
+  - id: W_airind
+    symbol: W_airind
+    symbol_latex: W_{airind}
+    name_zh: 进气系统重量
+    unit: N
+  - id: W_NA
+    symbol: W_NA
+    symbol_latex: W_{NA}
+    name_zh: 推进系统总重量
+    unit: N
+  - id: chi_exh
+    symbol: chi_exh
+    symbol_latex: \chi_{exh}
+    name_zh: 排气系统系数
+    unit: "1"
+  - id: K_0exh
+    symbol: K_0exh
+    symbol_latex: K_{0exh}
+    name_zh: 排气系统常数项
+    unit: "1"
+  - id: K_1exh
+    symbol: K_1exh
+    symbol_latex: K_{1exh}
+    name_zh: 排气系统线性系数
+    unit: "1"
+  - id: P
+    symbol: P
+    symbol_latex: P
+    name_zh: 功率
+    unit: W
+  - id: W_acc
+    symbol: W_acc
+    symbol_latex: W_{acc}
+    name_zh: 加速系统重量
+    unit: N
+  - id: chi_acc
+    symbol: chi_acc
+    symbol_latex: \chi_{acc}
+    name_zh: 加速系统修正系数
+    unit: "1"
+  - id: f_lub
+    symbol: f_lub
+    symbol_latex: f_{lub}
+    name_zh: 润滑系数
+    unit: "1"
+  - id: W_oneeng
+    symbol: W_oneeng
+    symbol_latex: W_{oneeng}
+    name_zh: 单发重量
+    unit: N
+  - id: N_eng
+    symbol: N_eng
+    symbol_latex: N_{eng}
+    name_zh: 发动机数量
+    unit: "1"
+  - id: W_Engine
+    symbol: W_Engine
+    symbol_latex: W_{Engine}
+    name_zh: 发动机总重量
+    unit: N
+  - id: W_eng
+    symbol: W_eng
+    symbol_latex: W_{eng}
+    name_zh: 发动机重量
+    unit: N
+  - id: W_exh
+    symbol: W_exh
+    symbol_latex: W_{exh}
+    name_zh: 排气系统重量
+    unit: N
+  - id: W_tank
+    symbol: W_tank
+    symbol_latex: W_{tank}
+    name_zh: 油箱重量
+    unit: N
+  - id: chi_tank
+    symbol: chi_tank
+    symbol_latex: \chi_{tank}
+    name_zh: 油箱修正系数
+    unit: "1"
+  - id: C_int
+    symbol: C_int
+    symbol_latex: C_{int}
+    name_zh: 内部容积系数
+    unit: "1"
+  - id: N_int
+    symbol: N_int
+    symbol_latex: N_{int}
+    name_zh: 内部结构数量
+    unit: "1"
+  - id: f_cwf_bt
+    symbol: f_cwf_bt
+    symbol_latex: f_{cwf\_bt}
+    name_zh: 燃油管路修正系数
+    unit: "1"
+  - id: W_plumb
+    symbol: W_plumb
+    symbol_latex: W_{plumb}
+    name_zh: 管路重量
+    unit: N
+  - id: chi_plumb
+    symbol: chi_plumb
+    symbol_latex: \chi_{plumb}
+    name_zh: 管路修正系数
+    unit: "1"
+  - id: K_0plumb
+    symbol: K_0plumb
+    symbol_latex: K_{0plumb}
+    name_zh: 管路基础系数
+    unit: "1"
+  - id: K_Iplumb
+    symbol: K_Iplumb
+    symbol_latex: K_{Iplumb}
+    name_zh: 管路增量系数
+    unit: "1"
+  - id: N_plumb
+    symbol: N_plumb
+    symbol_latex: N_{plumb}
+    name_zh: 管路组件数量
+    unit: "1"
+  - id: F
+    symbol: F
+    symbol_latex: F
+    name_zh: 力
+    unit: N
+  - id: W_Fuel
+    symbol: W_Fuel
+    symbol_latex: W_{Fuel}
+    name_zh: 燃油系统总重量
+    unit: N
+  - id: w_gbrs
+    symbol: w_gbrs
+    symbol_latex: w_{gbrs}
+    name_zh: 齿轮箱单体重量
+    unit: N
+  - id: N_rotor
+    symbol: N_rotor
+    symbol_latex: N_{rotor}
+    name_zh: 旋翼数量
+    unit: "1"
+  - id: P_DSlimit
+    symbol: P_DSlimit
+    symbol_latex: P_{DSlimit}
+    name_zh: 动力系统极限功率
+    unit: W
+  - id: W_rotor
+    symbol: W_rotor
+    symbol_latex: W_{rotor}
+    name_zh: 旋翼重量
+    unit: N
+  - id: W_gb
+    symbol: W_gb
+    symbol_latex: W_{gb}
+    name_zh: 齿轮箱总重量
+    unit: N
+  - id: chi_gb
+    symbol: chi_gb
+    symbol_latex: \chi_{gb}
+    name_zh: 齿轮箱修正系数
+    unit: "1"
+  - id: I
+    symbol: I
+    symbol_latex: I
+    name_zh: 指示变量
+    unit: "1"
+  - id: f_rs
+    symbol: f_rs
+    symbol_latex: f_{rs}
+    name_zh: 离合器占比
+    unit: "1"
+  - id: W_rs
+    symbol: W_rs
+    symbol_latex: W_{rs}
+    name_zh: 离合器重量
+    unit: N
+  - id: chi_rs
+    symbol: chi_rs
+    symbol_latex: \chi_{rs}
+    name_zh: 离合器修正系数
+    unit: "1"
+  - id: W_ds
+    symbol: W_ds
+    symbol_latex: W_{ds}
+    name_zh: 动力传动系统重量
+    unit: N
+  - id: chi_ds
+    symbol: chi_ds
+    symbol_latex: \chi_{ds}
+    name_zh: 动力传动修正系数
+    unit: "1"
+  - id: Q_DSlimit
+    symbol: Q_DSlimit
+    symbol_latex: Q_{DSlimit}
+    name_zh: 动力系统极限流量
+    unit: m^3/s
+  - id: x_hub
+    symbol: x_hub
+    symbol_latex: x_{hub}
+    name_zh: 轮毂尺寸因子
+    unit: "1"
+  - id: N_ds
+    symbol: N_ds
+    symbol_latex: N_{ds}
+    name_zh: 动力传动组件数量
+    unit: "1"
+  - id: If_P
+    symbol: If_P
+    symbol_latex: I_{f\_P}
+    name_zh: 功率指示变量
+    unit: "1"
+  - id: W_rb
+    symbol: W_rb
+    symbol_latex: W_{rb}
+    name_zh: 旋翼轴承重量
+    unit: N
+  - id: chi_rb
+    symbol: chi_rb
+    symbol_latex: \chi_{rb}
+    name_zh: 轴承修正系数
+    unit: "1"
+  - id: W_blade
+    symbol: W_blade
+    symbol_latex: W_{blade}
+    name_zh: 叶片重量
+    unit: N
+  - id: V_tip
+    symbol: V_tip
+    symbol_latex: V_{tip}
+    name_zh: 叶尖速度
+    unit: m/s
+  - id: W_Drive
+    symbol: W_Drive
+    symbol_latex: W_{Drive}
+    name_zh: 驱动系统总重量
+    unit: N
+  - id: W_Rwnb
+    symbol: W_Rwnb
+    symbol_latex: W_{Rwnb}
+    name_zh: 旋翼主结构重量
+    unit: N
+  - id: chi_Rwnb
+    symbol: chi_Rwnb
+    symbol_latex: \chi_{Rwnb}
+    name_zh: 旋翼主结构修正系数
+    unit: "1"
+  - id: f_nbsv
+    symbol: f_nbsv
+    symbol_latex: f_{nbsv}
+    name_zh: 旋翼结构修正系数
+    unit: "1"
+  - id: W_MTO
+    symbol: W_MTO
+    symbol_latex: W_{MTO}
+    name_zh: 最大起飞重量
+    unit: N
+  - id: w_f_c
+    symbol: w_f_c
+    symbol_latex: w_{f\_c}
+    name_zh: 旋翼主翼面重量系数
+    unit: N
+  - id: f_mbsv
+    symbol: f_mbsv
+    symbol_latex: f_{mbsv}
+    name_zh: 主翼面修正系数
+    unit: "1"
+  - id: N_blade
+    symbol: N_blade
+    symbol_latex: N_{blade}
+    name_zh: 叶片数量
+    unit: "1"
+  - id: c
+    symbol: c
+    symbol_latex: c
+    name_zh: 弦长
+    unit: m
+  - id: f_RWred
+    symbol: f_RWred
+    symbol_latex: f_{RWred}
+    name_zh: 旋翼减重系数
+    unit: "1"
+  - id: W_Rwmb
+    symbol: W_Rwmb
+    symbol_latex: W_{Rwmb}
+    name_zh: 旋翼主翼面重量
+    unit: N
+  - id: chi_Rwmb
+    symbol: chi_Rwmb
+    symbol_latex: \chi_{Rwmb}
+    name_zh: 旋翼主翼面修正系数
+    unit: "1"
+  - id: f_Rwhyd
+    symbol: f_Rwhyd
+    symbol_latex: f_{Rwhyd}
+    name_zh: 液压系统占比
+    unit: "1"
+  - id: W_Rwb
+    symbol: W_Rwb
+    symbol_latex: W_{Rwb}
+    name_zh: 旋翼次结构重量
+    unit: N
+  - id: chi_Rwb
+    symbol: chi_Rwb
+    symbol_latex: \chi_{Rwb}
+    name_zh: 旋翼次结构修正系数
+    unit: "1"
+  - id: f_bsv
+    symbol: f_bsv
+    symbol_latex: f_{bsv}
+    name_zh: 次结构修正系数
+    unit: "1"
+  - id: W_CVmb
+    symbol: W_CVmb
+    symbol_latex: W_{CVmb}
+    name_zh: 控制阀主重量
+    unit: N
+  - id: chi_CVmb
+    symbol: chi_CVmb
+    symbol_latex: \chi_{CVmb}
+    name_zh: 控制阀主修正系数
+    unit: "1"
+  - id: f_CVmb
+    symbol: f_CVmb
+    symbol_latex: f_{CVmb}
+    name_zh: 控制阀主占比
+    unit: "1"
+  - id: W_Vmb
+    symbol: W_Vmb
+    symbol_latex: W_{Vmb}
+    name_zh: 垂直控制重量
+    unit: N
+  - id: chi_Vmb
+    symbol: chi_Vmb
+    symbol_latex: \chi_{Vmb}
+    name_zh: 垂直控制修正系数
+    unit: "1"
+  - id: f_Vmb
+    symbol: f_Vmb
+    symbol_latex: f_{Vmb}
+    name_zh: 垂直控制占比
+    unit: "1"
+  - id: W_CV
+    symbol: W_CV
+    symbol_latex: W_{CV}
+    name_zh: 控制阀总重量
+    unit: N
+  - id: W_CVnb
+    symbol: W_CVnb
+    symbol_latex: W_{CVnb}
+    name_zh: 控制阀次重量
+    unit: N
+  - id: W_FCS
+    symbol: W_FCS
+    symbol_latex: W_{FCS}
+    name_zh: 飞行控制系统总重量
+    unit: N
+  - id: W_RWhyd
+    symbol: W_RWhyd
+    symbol_latex: W_{RWhyd}
+    name_zh: 旋翼液压系统重量
+    unit: N
+  - id: chi_RWhyd
+    symbol: chi_RWhyd
+    symbol_latex: \chi_{RWhyd}
+    name_zh: 旋翼液压修正系数
+    unit: "1"
+  - id: f_RWhyd
+    symbol: f_RWhyd
+    symbol_latex: f_{RWhyd}
+    name_zh: 旋翼液压占比
+    unit: "1"
+  - id: CL
+    symbol: CL
+    symbol_latex: CL
+    name_zh: 升力系数
+    unit: "1"
+  - id: CD
+    symbol: CD
+    symbol_latex: CD
+    name_zh: 阻力系数
+    unit: "1"
+  - id: L
+    symbol: L
+    symbol_latex: L
+    name_zh: 升力
+    unit: N
+  - id: CD0
+    symbol: CD0
+    symbol_latex: CD0
+    name_zh: 零升阻力系数
+    unit: "1"
+  - id: A
+    symbol: A
+    symbol_latex: A
+    name_zh: 展弦比
+    unit: "1"
+  - id: e
+    symbol: e
+    symbol_latex: e
+    name_zh: 奥斯瓦尔德效率因子
+    unit: "1"
+  - id: rhoc
+    symbol: rhoc
+    symbol_latex: \rho
+    name_zh: 空气密度
+    unit: kg/m**3
+  - id: u
+    symbol: u
+    symbol_latex: u
+    name_zh: 飞行速度
+    unit: m/s
+  - id: Swing
+    symbol: Swing
+    symbol_latex: S_{wing}
+    name_zh: 机翼面积
+    unit: m**2
+  - id: S_hs
+    symbol: S_hs
+    symbol_latex: S_{hs}
+    name_zh: 水平尾翼面积
+    unit: m**2
+  - id: T
+    symbol: T
+    symbol_latex: T
+    name_zh: 推力
+    unit: N
+  - id: K_ind
+    symbol: K_ind
+    symbol_latex: K_{ind}
+    name_zh: 诱导系数
+    unit: "1"
+  - id: f_G
+    symbol: f_G
+    symbol_latex: f_{G}
+    name_zh: 地面效应修正因子
+    unit: "1"
+  - id: nu_i
+    symbol: nu_i
+    symbol_latex: \nu_i
+    name_zh: 诱导速度
+    unit: m/s
+  - id: nu_i_bar
+    symbol: nu_i_bar
+    symbol_latex: \bar{\nu}_i
+    name_zh: 归一化诱导速度
+    unit: "1"
+  - id: C_T
+    symbol: C_T
+    symbol_latex: C_T
+    name_zh: 推力系数
+    unit: "1"
+  - id: kappa
+    symbol: kappa
+    symbol_latex: \kappa
+    name_zh: 常数（诱导速度归一化）
+    unit: "1"
+  - id: P_pr
+    symbol: P_pr
+    symbol_latex: P_{pr}
+    name_zh: 前飞诱导功率
+    unit: W
+  - id: P_pr0
+    symbol: P_pr0
+    symbol_latex: P_{pr0}
+    name_zh: 基础前飞诱导功率
+    unit: W
+  - id: sigma
+    symbol: sigma
+    symbol_latex: \sigma
+    name_zh: 桨盘载荷系数
+    unit: "1"
+  - id: Omega
+    symbol: Omega
+    symbol_latex: \Omega
+    name_zh: 旋转角速度
+    unit: rad/s
+  - id: R
+    symbol: R
+    symbol_latex: R
+    name_zh: 桨叶半径
+    unit: m
+  - id: c_d
+    symbol: c_d
+    symbol_latex: c_d
+    name_zh: 桨叶剖面阻力系数
+    unit: "1"
+  - id: mu
+    symbol: mu
+    symbol_latex: \mu
+    name_zh: 前进比
+    unit: "1"
+  - id: P_r
+    symbol: P_r
+    symbol_latex: P_{r}
+    name_zh: 总所需功率
+    unit: W
+  - id: xi
+    symbol: xi
+    symbol_latex: \xi
+    name_zh: 总效率因子
+    unit: "1"
+  - id: eta_p
+    symbol: eta_p
+    symbol_latex: \eta_p
+    name_zh: 推进效率
+    unit: "1"
+  - id: U_c
+    symbol: U_c
+    symbol_latex: U_c
+    name_zh: 型阻速度项
+    unit: m/s
+  - id: U_c_bar
+    symbol: U_c_bar
+    symbol_latex: \bar{U}_c
+    name_zh: 归一化型阻速度项
+    unit: "1"
+  - id: C_P
+    symbol: C_P
+    symbol_latex: C_P
+    name_zh: 功率系数
+    unit: "1"
+  - id: pi
+    symbol: pi
+    symbol_latex: \pi
+    name_zh: 圆周率
+    unit: "1"
+  - id: W_CVhyd
+    symbol: W_CVhyd
+    symbol_latex: W_{CVhyd}
+    name_zh: 混合动力系统功率
+    unit: W
+  - id: chi_CFhyd
+    symbol: chi_CFhyd
+    symbol_latex: \chi_{CFhyd}
+    name_zh: 混合动力功率分配系数
+    unit: "1"
+  - id: f_CVhyd
+    symbol: f_CVhyd
+    symbol_latex: f_{CVhyd}
+    name_zh: 混合动力功率修正因子
+    unit: "1"
+  - id: W_CVmb
+    symbol: W_CVmb
+    symbol_latex: W_{CVmb}
+    name_zh: 主电池功率
+    unit: W
+  - id: W_RWhyd
+    symbol: W_RWhyd
+    symbol_latex: W_{RWhyd}
+    name_zh: 旋翼液压功率
+    unit: W
+  - id: W_Hyd
+    symbol: W_Hyd
+    symbol_latex: W_{Hyd}
+    name_zh: 总液压功率
+    unit: W
+  - id: chi_eq
+    symbol: chi_eq
+    symbol_latex: \chi_{eq}
+    name_zh: 等效功率分配系数
+    unit: "1"
+  - id: f_eq
+    symbol: f_eq
+    symbol_latex: f_{eq}
+    name_zh: 等效功率修正因子
+    unit: "1"
+  - id: W_MTO
+    symbol: W_MTO
+    symbol_latex: W_{MTO}
+    name_zh: 最大起飞功率
+    unit: W
+  - id: D
+    symbol: D
+    symbol_latex: D
+    name_zh: 阻力
+    unit: N
+  - id: rhoc
+    symbol: rhoc
+    symbol_latex: \rho
+    name_zh: 空气密度
+    unit: kg/m**3
+  - id: u
+    symbol: u
+    symbol_latex: u
+    name_zh: 速度
+    unit: m/s
+  - id: Swing
+    symbol: Swing
+    symbol_latex: S
+    name_zh: 机翼面积
+    unit: m**2
+  - id: CD
+    symbol: CD
+    symbol_latex: C_D
+    name_zh: 阻力系数
+    unit: "1"
+  - id: CX
+    symbol: CX
+    symbol_latex: C_X
+    name_zh: 附加阻力系数
+    unit: "1"
+  - id: m_fuel_dot
+    symbol: m_fuel_dot
+    symbol_latex: \dot{m}_{fuel}
+    name_zh: 燃油质量流率
+    unit: kg/s
+  - id: shp
+    symbol: shp
+    symbol_latex: shp
+    name_zh: 轴功率
+    unit: kW
+  - id: W_fc
+    symbol: W_fc
+    symbol_latex: W_{fc}
+    name_zh: 燃油重量消耗
+    unit: N
+  - id: W_fuel
+    symbol: W_fuel
+    symbol_latex: W_{fuel}
+    name_zh: 燃油重量
+    unit: N
+  - id: Delta_W_fc
+    symbol: Delta_W_fc
+    symbol_latex: \Delta W_{fc}
+    name_zh: 燃油重量修正
+    unit: N
+  - id: W_av
+    symbol: W_av
+    symbol_latex: W_{av}
+    name_zh: 可用重量
+    unit: N
+  - id: W0
+    symbol: W0
+    symbol_latex: W_0
+    name_zh: 起飞总重量
+    unit: N
+  - id: Delta_W_fc_climb
+    symbol: Delta_W_fc_climb
+    symbol_latex: \Delta W_{fc,climb}
+    name_zh: 爬升燃油重量消耗
+    unit: N
+  - id: Delta_W_fc_hover
+    symbol: Delta_W_fc_hover
+    symbol_latex: \Delta W_{fc,hover}
+    name_zh: 悬停燃油重量消耗
+    unit: N
+  - id: L_max
+    symbol: L_max
+    symbol_latex: L_{max}
+    name_zh: 最大起飞距离
+    unit: m
+  - id: W_fin_kn
+    symbol: W_fin_kn
+    symbol_latex: W_{fin,kn}
+    name_zh: 最终重量系数
+    unit: N
+  - id: Delta_L_takeoff
+    symbol: Delta_L_takeoff
+    symbol_latex: \Delta L_{takeoff}
+    name_zh: 起飞距离增量
+    unit: m
+  - id: Delta_L_tanding
+    symbol: Delta_L_tanding
+    symbol_latex: \Delta L_{tanding}
+    name_zh: 着陆距离增量
+    unit: m
+  - id: T_max
+    symbol: T_max
+    symbol_latex: T_{max}
+    name_zh: 最大所需推力
+    unit: N
+  - id: W_fin
+    symbol: W_fin
+    symbol_latex: W_{fin}
+    name_zh: 最终重量
+    unit: N
+  - id: Delta_T_takeoff
+    symbol: Delta_T_takeoff
+    symbol_latex: \Delta T_{takeoff}
+    name_zh: 起飞推力增量
+    unit: N
+  - id: Delta_T_tanding
+    symbol: Delta_T_tanding
+    symbol_latex: \Delta T_{tanding}
+    name_zh: 着陆推力增量
+    unit: N
+  - id: V_HT
+    symbol: V_HT
+    symbol_latex: V_{HT}
+    name_zh: 水平尾翼体积系数
+    unit: "1"
+  - id: l_HT
+    symbol: l_HT
+    symbol_latex: l_{HT}
+    name_zh: 水平尾翼力臂
+    unit: m
+  - id: V_VT
+    symbol: V_VT
+    symbol_latex: V_{VT}
+    name_zh: 垂直尾翼体积系数
+    unit: "1"
+  - id: l_VT
+    symbol: l_VT
+    symbol_latex: l_{VT}
+    name_zh: 垂直尾翼力臂
+    unit: m
+  - id: b
+    symbol: b
+    symbol_latex: b
+    name_zh: 翼展
+    unit: m
+  - id: c
+    symbol: c
+    symbol_latex: c
+    name_zh: 平均气动弦长
+    unit: m

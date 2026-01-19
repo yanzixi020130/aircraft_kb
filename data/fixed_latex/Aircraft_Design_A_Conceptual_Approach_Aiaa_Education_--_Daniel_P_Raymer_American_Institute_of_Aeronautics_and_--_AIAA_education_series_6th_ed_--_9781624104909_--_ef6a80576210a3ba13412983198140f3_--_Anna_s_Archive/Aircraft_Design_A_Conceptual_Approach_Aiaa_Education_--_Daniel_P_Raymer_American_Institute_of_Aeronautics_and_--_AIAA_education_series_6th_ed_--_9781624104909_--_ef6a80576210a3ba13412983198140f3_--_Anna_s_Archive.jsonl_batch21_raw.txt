@@ -1,0 +1,187 @@
+[
+  {
+    "idx": 401,
+    "original": "\\frac{\\partial(T / W)}{\\partial V} = \\frac{\\rho VC_{D_0}}{W / S} -\\frac{W}{S}\\frac{2K}{\\frac{1}{2}\\rho V^3} = 0 \\tag{17.12}",
+    "fixed": [
+      "\\frac{\\partial(T / W)}{\\partial V} = \\frac{\\rho V C_{D_0}}{W / S} - \\frac{W}{S} \\frac{2K}{\\frac{1}{2} \\rho V^3} = 0"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式为单一方程，无并列结构；去除多余空格和样式（如\\mathrm{}未出现），上下文完整，无需补全。"
+  },
+  {
+    "idx": 402,
+    "original": "V_{\\mathrm{min}\\mathrm{thrust}\\mathrm{or}\\mathrm{drag}} = \\sqrt{\\frac{2W}{\\rho S}\\sqrt{\\frac{K}{C_{D_0}}}} \\tag{17.13}",
+    "fixed": [
+      "V_{min\\ thrust\\ or\\ drag} = \\sqrt{\\frac{2W}{\\rho S} \\sqrt{\\frac{K}{C_{D_0}}}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{}修饰，统一为下标文本；上下文完整，公式完整。"
+  },
+  {
+    "idx": 403,
+    "original": "C_{L\\min \\mathrm{thrust}\\mathrm{or}\\mathrm{drag}} = \\sqrt{\\frac{C_{D_0}}{K}} \\tag{17.14}",
+    "fixed": [
+      "C_{L\\ min\\ thrust\\ or\\ drag} = \\sqrt{\\frac{C_{D_0}}{K}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "清理\\mathrm{}和多余空格，下标统一为文本；上下文完整，公式完整。"
+  },
+  {
+    "idx": 404,
+    "original": "D_{\\mathrm{min}\\mathrm{thrust}\\mathrm{or}\\mathrm{drag}} = qS\\left[C_{D_0} + K\\left(\\sqrt{\\frac{C_{D_0}}{K}}\\right)^2\\right] = qS(C_{D_0} + C_{D_0}) \\tag{17.15}",
+    "fixed": [
+      "D_{min\\ thrust\\ or\\ drag} = qS \\left[ C_{D_0} + K \\left( \\sqrt{\\frac{C_{D_0}}{K}} \\right)^2 \\right] = qS (C_{D_0} + C_{D_0})"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式为等式链，但属同一物理推导，不拆分；清理\\mathrm{}和空格；上下文明确说明该式为总阻力表达式，完整。"
+  },
+  {
+    "idx": 405,
+    "original": "\\begin{array}{l}{P = DV = qS(C_{D_0} + KC_L^2)V = \\frac{1}{2}\\rho V^3 S(C_{D_0} + KC_L^2)}\\\\ {}\\\\ {P = \\frac{1}{2}\\rho V^3 SC_{D_0} + \\frac{KW^2}{\\frac{1}{2}\\rho VS}} \\end{array} \\tag{17.17}",
+    "fixed": [
+      "P = D V = qS (C_{D_0} + K C_L^2) V = \\frac{1}{2} \\rho V^3 S (C_{D_0} + K C_L^2)",
+      "P = \\frac{1}{2} \\rho V^3 S C_{D_0} + \\frac{K W^2}{\\frac{1}{2} \\rho V S}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分array中的两个独立等式为两个公式；清理多余空格和花括号；上下文明确说明是代入后的两个表达式，完整。"
+  },
+  {
+    "idx": 406,
+    "original": "\\frac{\\partial P}{\\partial V} = \\frac{3}{2}\\rho V^2 SC_{D_0} - \\frac{KW^2}{\\frac{1}{2}\\rho V^2S} = 0 \\tag{17.18}",
+    "fixed": [
+      "\\frac{\\partial P}{\\partial V} = \\frac{3}{2} \\rho V^2 S C_{D_0} - \\frac{K W^2}{\\frac{1}{2} \\rho V^2 S} = 0"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单一方程，清理空格；上下文明确为求最小功率的导数条件，完整。"
+  },
+  {
+    "idx": 407,
+    "original": "\\begin{array}{rl} & {V_{\\min \\mathrm{power}} = \\sqrt{\\frac{2W}{\\rho S}\\sqrt{\\frac{K}{3C_{D_0}}}}}\\\\ & {C_{L\\min \\mathrm{power}} = \\sqrt{\\frac{3C_{D_0}}{K}}}\\\\ & {D_{\\min \\mathrm{power}} = qS(C_{D_0} + 3C_{D_0})} \\end{array} \\tag{17.21}",
+    "fixed": [
+      "V_{min\\ power} = \\sqrt{\\frac{2W}{\\rho S} \\sqrt{\\frac{K}{3 C_{D_0}}}}",
+      "C_{L\\ min\\ power} = \\sqrt{\\frac{3 C_{D_0}}{K}}",
+      "D_{min\\ power} = qS (C_{D_0} + 3 C_{D_0})"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分array中三个并列公式；清理\\mathrm{}和空格；上下文明确为最小功率对应的速度、升力系数、阻力，完整。"
+  },
+  {
+    "idx": 408,
+    "original": "\\begin{array}{l}\\frac{\\mathrm{d}R}{\\mathrm{d}W} = \\frac{V}{-CT} = \\frac{V}{-CD} = \\frac{V(L / D)}{-CW}\\\\ \\displaystyle R = \\int_{W_i}^{W_f}\\frac{V(L / D)}{-CW}\\mathrm{d}W = \\frac{V}{C}\\frac{L}{D}\\ell n\\left(\\frac{W_i}{W_f}\\right) \\end{array} \\tag{17.23}",
+    "fixed": [
+      "\\frac{d R}{d W} = \\frac{V}{-C T} = \\frac{V}{-C D} = \\frac{V (L / D)}{-C W}",
+      "R = \\int_{W_i}^{W_f} \\frac{V (L / D)}{-C W} dW = \\frac{V}{C} \\frac{L}{D} \\ln \\left( \\frac{W_i}{W_f} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两个独立公式（导数与积分）；清理\\mathrm{}为普通d，\\ell n改为标准\\ln；上下文完整，无需补全。"
+  },
+  {
+    "idx": 409,
+    "original": "\\frac{V}{C}\\left(\\frac{L}{D}\\right) = \\frac{V}{C}\\left(\\frac{C_L}{C_{D_0} + KC_L^2}\\right) = \\frac{2W / \\rho VS}{CC_{D_0} + (4KW^2C) / (\\rho^2V^4S^2)} \\tag{17.24}",
+    "fixed": [
+      "\\frac{V}{C} \\left( \\frac{L}{D} \\right) = \\frac{V}{C} \\left( \\frac{C_L}{C_{D_0} + K C_L^2} \\right) = \\frac{2W / \\rho V S}{C C_{D_0} + (4 K W^2 C) / (\\rho^2 V^4 S^2)}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条等式链，清理空格；上下文明确为表达式等价变换，完整。"
+  },
+  {
+    "idx": 410,
+    "original": "\\begin{array}{r l} & {V_{\\mathrm{best~range}} = \\sqrt{\\frac{2W}{\\rho S}\\sqrt{\\frac{3K}{C_{D_{0}}}}}}\\\\ & {C_{L_{\\mathrm{best~range}}} = \\sqrt{\\frac{C_{D_{0}}}{3K}}}\\\\ & {D_{\\mathrm{best~range}} = q S\\left(C_{D_{0}} + \\frac{C_{D_{0}}}{3}\\right)} \\end{array} \\tag{17.25}",
+    "fixed": [
+      "V_{best\\ range} = \\sqrt{\\frac{2W}{\\rho S} \\sqrt{\\frac{3K}{C_{D_0}}}}",
+      "C_{L_{best\\ range}} = \\sqrt{\\frac{C_{D_0}}{3K}}",
+      "D_{best\\ range} = q S \\left( C_{D_0} + \\frac{C_{D_0}}{3} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分三个并列公式；清理~和\\mathrm{}，统一为文本下标；上下文明确为最佳航程参数，完整。"
+  },
+  {
+    "idx": 411,
+    "original": "R = \\frac{\\eta_p}{C_{\\mathrm{power}}}\\frac{L}{D}\\ell n\\left(\\frac{W_i}{W_f}\\right) = \\frac{550\\eta_p}{C_{\\mathrm{bhp}}}\\frac{L}{D}\\ell n\\left(\\frac{W_i}{W_f}\\right) \\tag{17.28}",
+    "fixed": [
+      "R = \\frac{\\eta_p}{C_{power}} \\frac{L}{D} \\ln \\left( \\frac{W_i}{W_f} \\right) = \\frac{550 \\eta_p}{C_{bhp}} \\frac{L}{D} \\ln \\left( \\frac{W_i}{W_f} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条等式链，清理\\mathrm{}和\\ell n为\\ln；上下文说明为螺旋桨飞机航程表达式，完整。"
+  },
+  {
+    "idx": 412,
+    "original": "\\frac{\\mathrm{d}E}{\\mathrm{d}W} = -\\frac{1}{CT} = -\\frac{1}{-CW}\\left(\\frac{L}{D}\\right) \\tag{17.29}",
+    "fixed": [
+      "\\frac{d E}{d W} = -\\frac{1}{C T} = -\\frac{1}{-C W} \\left( \\frac{L}{D} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "清理\\mathrm{}为普通d；上下文明确为瞬时续航导数定义，完整。"
+  },
+  {
+    "idx": 413,
+    "original": "E = \\int_{W_i}^{W_f}\\frac{1}{-CT}\\mathrm{d}W = \\int_{W_f}^{W_i}\\frac{1}{CW}\\left(\\frac{L}{D}\\right)\\mathrm{d}W = \\left(\\frac{L}{D}\\right)\\left(\\frac{1}{C}\\right)\\ell n\\left(\\frac{W_i}{W_f}\\right) \\tag{17.30}",
+    "fixed": [
+      "E = \\int_{W_i}^{W_f} \\frac{1}{-C T} dW = \\int_{W_f}^{W_i} \\frac{1}{C W} \\left( \\frac{L}{D} \\right) dW = \\left( \\frac{L}{D} \\right) \\left( \\frac{1}{C} \\right) \\ln \\left( \\frac{W_i}{W_f} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "清理\\mathrm{}为d，\\ell n为\\ln；上下文完整，公式完整。"
+  },
+  {
+    "idx": 414,
+    "original": "\\begin{array}{l}{E = \\left(\\frac{L}{D}\\right)\\left(\\frac{\\eta_p}{C_{\\mathrm{power}}V}\\right)\\ell n\\left(\\frac{W_i}{W_f}\\right)}\\\\ {= \\left(\\frac{L}{D}\\right)\\left(\\frac{550\\eta_p}{C_{\\mathrm{bhp}}V}\\right)\\ell n\\left(\\frac{W_i}{W_f}\\right)} \\end{array} \\tag{17.31}",
+    "fixed": [
+      "E = \\left( \\frac{L}{D} \\right) \\left( \\frac{\\eta_p}{C_{power} V} \\right) \\ln \\left( \\frac{W_i}{W_f} \\right)",
+      "E = \\left( \\frac{L}{D} \\right) \\left( \\frac{550 \\eta_p}{C_{bhp} V} \\right) \\ln \\left( \\frac{W_i}{W_f} \\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两个等价表达式；清理\\mathrm{}和\\ell n；上下文明确为螺旋桨飞机续航的两种形式，完整。"
+  },
+  {
+    "idx": 415,
+    "original": "\\frac{\\partial}{\\partial V}\\left(\\frac{L}{DV}\\right) = \\frac{\\partial}{\\partial V}\\left[\\frac{2W / \\rho V^3S}{C_{D_0} + (4KW^2 / \\rho^2V^4S^2)}\\right] = 0 \\tag{17.32}",
+    "fixed": [
+      "\\frac{\\partial}{\\partial V} \\left( \\frac{L}{D V} \\right) = \\frac{\\partial}{\\partial V} \\left[ \\frac{2W / \\rho V^3 S}{C_{D_0} + (4 K W^2 / \\rho^2 V^4 S^2)} \\right] = 0"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单一方程，清理空格；上下文明确为求最佳续航速度的导数条件，完整。"
+  },
+  {
+    "idx": 416,
+    "original": "V = \\sqrt{\\frac{2W}{\\rho S}\\sqrt{\\frac{K}{3C_{D_0}}}} \\tag{17.33}",
+    "fixed": [
+      "V = \\sqrt{\\frac{2W}{\\rho S} \\sqrt{\\frac{K}{3 C_{D_0}}}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式，清理空格；上下文明确为最佳续航速度，完整。"
+  },
+  {
+    "idx": 417,
+    "original": "E_{\\mathrm{cloiter}} = 1.14\\left\\{\\frac{R_{\\mathrm{cruise}}}{V_{\\mathrm{cruise}}}\\right\\} \\tag{17.34}",
+    "fixed": [
+      "E_{cloiter} = 1.14 \\left\\{ \\frac{R_{cruise}}{V_{cruise}} \\right\\}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "清理\\mathrm{}为文本下标；上下文明确为估算留空时间的经验公式，完整。"
+  },
+  {
+    "idx": 418,
+    "original": "V_{\\mathrm{groundspeed}} = \\frac{V_{\\mathrm{airspeed}}\\sin\\{\\pi - \\Delta_{\\mathrm{tailwind}} - \\sin^{-1}[V_{\\mathrm{wind}}(\\sin\\Delta_{\\mathrm{tailwind}}) / V_{\\mathrm{airspeed}}]\\}}{\\sin\\Delta_{\\mathrm{tailwind}}}",
+    "fixed": [
+      "V_{groundspeed} = \\frac{V_{airspeed} \\sin \\{ \\pi - \\Delta_{tailwind} - \\sin^{-1} [ V_{wind} ( \\sin \\Delta_{tailwind} ) / V_{airspeed} ] \\}}{\\sin \\Delta_{tailwind}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "清理

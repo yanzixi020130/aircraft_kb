@@ -1,0 +1,223 @@
+[
+  {
+    "idx": 541,
+    "original": "(m_{\\mathrm{final}} + m_{\\mathrm{propelant}})V_0 \\tag{22.8}",
+    "fixed": [
+      "(m_final + m_propelant)V_0"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了 \\mathrm{} 样式和 \\tag{}，保留数学结构；上下文完整，无残缺"
+  },
+  {
+    "idx": 542,
+    "original": "m_{\\mathrm{final}}(V_0 + \\Delta V) + m_{\\mathrm{propelant}}(V_0 - V_{\\mathrm{exhaust}}) \\tag{22.9}",
+    "fixed": [
+      "m_final(V_0 + Delta V) + m_propelant(V_0 - V_exhaust)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{} 和 \\tag{}，统一符号；上下文完整，无残缺"
+  },
+  {
+    "idx": 543,
+    "original": "\\Delta V = \\frac{m_{\\mathrm{propelant}}V_{\\mathrm{exhaust}}}{m_{\\mathrm{final}}} \\tag{22.10}",
+    "fixed": [
+      "Delta V = (m_propelant * V_exhaust) / m_final"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{} 和 \\tag{}，将分数转为线性形式；上下文明确给出等式，完整"
+  },
+  {
+    "idx": 544,
+    "original": "\\Delta V = V_{\\mathrm{exhaust}}\\ell n\\left(\\frac{m_i}{m_f}\\right) \\tag{22.11}",
+    "fixed": [
+      "Delta V = V_exhaust * ln(m_i / m_f)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "修正 \\ell n 为标准 ln，去除 \\mathrm{} 和 \\tag{}；上下文明确，公式完整"
+  },
+  {
+    "idx": 545,
+    "original": "\\Delta V = g_0I_{\\mathrm{sp}}\\ell n\\left(\\frac{m_i}{m_f}\\right) \\tag{22.12}",
+    "fixed": [
+      "Delta V = g_0 * I_sp * ln(m_i / m_f)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "修正 \\ell n 为 ln，去除 \\mathrm{} 和 \\tag{}，添加乘号；上下文完整"
+  },
+  {
+    "idx": 546,
+    "original": "m_{i} / m_{f} = e^{\\frac{\\Delta V}{80I_{\\mathrm{sp}}}} = e^{\\frac{\\Delta V}{V_{\\mathrm{exhuss}}}} \\tag{22.13}",
+    "fixed": [
+      "m_i / m_f = exp(Delta V / (80 * I_sp))",
+      "m_i / m_f = exp(Delta V / V_exhuss)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列等式为两个独立公式；修正 \\ell n 为 exp，去除 \\mathrm{} 和 \\tag{}；上下文完整，无残缺"
+  },
+  {
+    "idx": 547,
+    "original": "\\begin{array}{l}{\\Delta V_{f} = \\sum_{1}^{n}\\Delta V = \\Delta V_{1} + \\Delta V_{2} + \\Delta V_{3} + \\dots}\\\\ {\\Delta V_{f} = g_{0}\\left\\{ \\begin{array}{c}{I_{\\mathrm{sp1}}\\ell_{n}(m_{i1} / m_{f1}) + I_{\\mathrm{sp2}}\\ell_{n}(m_{i2} / m_{f2})}\\\\ {+I_{\\mathrm{sp3}}\\ell_{n}(m_{i3} / m_{f3}) + \\dots} \\end{array} \\right\\}}\\\\ {\\Delta V_{f} = g_{0}I_{\\mathrm{sp}}\\ell_{n}\\left[\\left(\\frac{m_{i1}}{m_{f1}}\\right)\\left(\\frac{m_{i2}}{m_{f2}}\\right)\\left(\\frac{m_{i3}}{m_{f3}}\\right)\\dots \\right]}\\\\ {\\Delta V_{f} = g_{0}I_{\\mathrm{sp}}\\ell_{n}\\left[\\frac{m_{i1}}{m_{f(\\mathrm{laststage})}}\\right]} \\end{array} \\tag{22.17}",
+    "fixed": [
+      "Delta V_f = sum_{1}^{n} Delta V = Delta V_1 + Delta V_2 + Delta V_3 + ...",
+      "Delta V_f = g_0 * { I_sp1 * ln(m_i1 / m_f1) + I_sp2 * ln(m_i2 / m_f2) + I_sp3 * ln(m_i3 / m_f3) + ... }",
+      "Delta V_f = g_0 * I_sp * ln[ (m_i1 / m_f1) * (m_i2 / m_f2) * (m_i3 / m_f3) * ... ]",
+      "Delta V_f = g_0 * I_sp * ln[ m_i1 / m_f(laststage) ]"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分 array 中的四行独立公式；修正 \\ell_{n} 为 ln，去除 \\mathrm{} 和 \\tag{}；上下文完整，无残缺"
+  },
+  {
+    "idx": 548,
+    "original": "\\% F = \\frac{\\rho_H}{\\rho_{\\mathrm{SL}}} = \\frac{P_HT_{\\mathrm{SL}}}{P_{\\mathrm{SL}}T_H} \\tag{22.18}",
+    "fixed": [
+      "% F = rho_H / rho_SL",
+      "% F = (P_H * T_SL) / (P_SL * T_H)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分两个并列等式；去除 \\mathrm{} 和 \\tag{}，保留 % 符号；上下文完整"
+  },
+  {
+    "idx": 549,
+    "original": "\\frac{W_{e}}{W_{0}} = \\left(\\frac{1.73}{.533}\\right)1.093W_{0}^{-1} = 1.495W_{0}^{-1}",
+    "fixed": [
+      "W_e / W_0 = (1.73 / 0.533) * 1.093 * W_0^(-1)",
+      "W_e / W_0 = 1.495 * W_0^(-1)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分两个等价表达式为独立公式；标准化小数为 0.533，添加乘号；上下文完整"
+  },
+  {
+    "idx": 550,
+    "original": "\\frac{W_{4}}{W_{0}} = .97\\times .985\\times .953\\times .995 = .906",
+    "fixed": [
+      "W_4 / W_0 = 0.97 * 0.985 * 0.953 * 0.995",
+      "W_4 / W_0 = 0.906"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分计算过程与结果为两个公式；标准化小数；上下文完整"
+  },
+  {
+    "idx": 551,
+    "original": "\\frac{W_{3}}{W_{2}} = \\frac{W_{4} / W_{0}}{\\frac{W_{1}}{W_{0}}\\times\\frac{W_{2}}{W_{1}}\\times\\frac{W_{4}}{W_{3}}} = \\frac{.925}{(.97)(.985)(.995)} = .973",
+    "fixed": [
+      "W_3 / W_2 = (W_4 / W_0) / ( (W_1 / W_0) * (W_2 / W_1) * (W_4 / W_3) )",
+      "W_3 / W_2 = 0.925 / (0.97 * 0.985 * 0.995)",
+      "W_3 / W_2 = 0.973"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分三个并列表达式；标准化小数，添加乘号；上下文明确，完整"
+  },
+  {
+    "idx": 552,
+    "original": "\\frac{e_{b}(3.21)}{D / \\rho_{\\mathrm{cooling}}} = \\left(4.9 \\times 10^{-7}\\right) \\frac{150 (s_{17})^{2}}{V} = \\frac{19.8}{V} \\frac{4.2}{s_{17}}",
+    "fixed": [
+      "e_b(3.21) / (D / rho_cooling) = (4.9e-7) * (150 * s_17^2) / V",
+      "e_b(3.21) / (D / rho_cooling) = (19.8 / V) * (4.2 / s_17)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分两个等价表达式；去除 \\mathrm{}，标准化科学计数法；上下文完整"
+  },
+  {
+    "idx": 553,
+    "original": "\\frac{e_{b}(13.22)}{D / \\rho_{\\mathrm{min}}} = \\left(2 \\times 10^{-4}\\right) 150 = .03 \\frac{42}{42}",
+    "fixed": [
+      "e_b(13.22) / (D / rho_min) = (2e-4) * 150",
+      "e_b(13.22) / (D / rho_min) = 0.03 * (42 / 42)"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "e_b(13.22) / (D / rho_min) = 0.03"
+    ],
+    "notes": "拆分两个表达式；标准化科学计数法；但 0.03 * (42/42) 明显为冗余，根据上下文 'MISC. ENGINE DRAG' 和数值一致性，42/42 应为笔误，补全为 0.03"
+  },
+  {
+    "idx": 554,
+    "original": "C_{b} = .0250 + .0024 + .0003 = .0277",
+    "fixed": [
+      "C_b = 0.0250 + 0.0024 + 0.0003",
+      "C_b = 0.0277"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分求和与结果；标准化小数；上下文完整"
+  },
+  {
+    "idx": 555,
+    "original": "\\frac{e_{b}(12.47)}{e} = 1.78 [1 - 0.045 (6)^{-4.88} - 0.64 = 0.87 \\frac{1}{\\pi (6 \\times 87)} = 0.061",
+    "fixed": [
+      "e_b(12.47) / e = 1.78 * [1 - 0.045 * (6)^(-4.88) - 0.64]",
+      "e_b(12.47) / e = 0.87",
+      "e_b(12.47) / e = 1 / (pi * (6 * 87))",
+      "e_b(12.47) / e = 0.061"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "e_b(12.47) / e = 1.78 * [1 - 0.045 * (6)^(-4.88)] - 0.64",
+      "e_b(12.47) / e = 0.061"
+    ],
+    "notes": "公式存在语法错误：'1 - 0.045 (6)^{-4.88} - 0.64 = 0.87' 是不合法的等式链。根据上下文 'INDUCED DRAG' 和公式结构，推测原意为：1.78 * [1 - 0.045*(6)^(-4.88)] - 0.64 = 0.87，但 0.87 与后文 0.061 矛盾。后文 1/(pi*6*87)≈0.061 是独立计算，应为最终结果。因此补全为两个合理表达式：修正括号缺失，保留最终值 0.061 作为目标结果"
+  },
+  {
+    "idx": 556,
+    "original": "C_{p} = \\frac{550(150)}{50n^{3}D^{5}} = 0.06",
+    "fixed": [
+      "C_p = (550 * 150) / (50 * n^3 * D^5)",
+      "C_p = 0.06"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分表达式与结果；添加乘号；上下文给出 J 值，但公式本身完整"
+  },
+  {
+    "idx": 557,
+    "original": "\\mathrm{V}_{\\mathrm{stall}} \\leq \\mathrm{V}_{\\mathrm{approach}} / \\mathrm{I}_{2} = 183 \\mathrm{~f / sec}",
+    "fixed": [
+      "V_stall <= V_approach / I_2",
+      "V_stall = 183 f/sec"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "V_stall <= V_approach / I_2 = 183 f/sec"
+    ],
+    "notes": "拆分不等式与数值结果；但上下文明确给出 'Vapproach = 220 f/sec'，且公式中 I_2 未定义，但等式右侧 183 f/sec 是直接结果，因此补全为完整等式链，保留原始上下文中的数值"
+  },
+  {
+    "idx": 558,
+    "original": "\\mathrm{W} / \\mathrm{S} \\leq \\mathrm{g} \\mathrm{C}_{\\mathrm{L}_{\\mathrm{max}}} \\quad \\mathrm{at} \\mathrm{Stall}",
+    "fixed": [
+      "W / S <= g * C_Lmax at Stall"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{}，添加乘号；上下文明确，公式完整，虽无数值但为通用公式"
+  },
+  {
+    "idx": 559,
+    "original": "\\psi_{3} = 56\\times 98\\times 977 = 54",
+    "fixed": [
+      "psi_3 = 56 * 98 * 977",
+      "psi_3 = 54"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "psi_3 = 54"
+    ],
+    "notes": "拆分计算与结果；但 56*98*977 ≈ 5.35e6，远大于 54，明显矛盾。根据上下文 'Cruise' 和数值规模，54 应为最终结果，计算过程为笔误。依据 md_context 中 'V=876 ft/sec; q=283 lb/ft2' 无直接关联，但结果 54 是唯一合理值，故补全为 psi_3 = 54，原计算式视为错误"
+  },
+  {
+    "idx": 560,
+    "original": "\\begin{array}{r l} & {\\frac{\\mathrm{~e~g~6.10~}}{\\mathrm{~e~g~6.9~}}(\\frac{W_{4}}{W_{3}})_{M,1\\rightarrow 1,4} = .9616{ \\begin{array}{l l}{\\frac{W_{4}}{W_{3}}} = \\frac{9616}{9773} = .984}\\\\ {\\frac{W_{4}}{W_{3}})_{M,1\\rightarrow 9} = .9773}} \\end{array}",
+    "fixed": [
+      "(eg_6.10 / eg_6.9) * (W_4 / W_

@@ -1,0 +1,190 @@
+[
+  {
+    "idx": 281,
+    "original": "\\begin{array}{r}W_{\\mathrm{w i n g}} = 0.0103K_{\\mathrm{d w}}K_{\\mathrm{v s}}(W_{\\mathrm{d g}}N_{z})^{0.5}S_{w}^{0.622}A^{0.785}(t / c)_{\\mathrm{r o o t}}\\\\ \\times (1 + \\lambda)^{0.05}(\\cos \\Lambda)^{-1.0}S_{\\mathrm{c s w}}^{0.04} \\end{array} \\tag{15.1}",
+    "fixed": [
+      "W_{wing} = 0.0103K_{dw}K_{vs}(W_{dg}N_z)^{0.5}S_w^{0.622}A^{0.785}(t/c)_{root} \\times (1 + \\lambda)^{0.05}(\\cos \\Lambda)^{-1.0}S_{csw}^{0.04}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了\\mathrm{ }中多余空格（如w i n g → wing），合并多行公式为单行表达式，上下文完整，无需补全。"
+  },
+  {
+    "idx": 282,
+    "original": "W_{\\mathrm{horizonal~tail}} = 3.316\\left(1 + \\frac{F_w}{B_h}\\right)^{-2.0}\\left(\\frac{W_{\\mathrm{dg}}N_z}{1000}\\right)^{0.260}S_{\\mathrm{ht}}^{0.806} \\tag{15.2}",
+    "fixed": [
+      "W_{horizonal_tail} = 3.316(1 + \\frac{F_w}{B_h})^{-2.0}(\\frac{W_{dg}N_z}{1000})^{0.260}S_{ht}^{0.806}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "将~替换为_，去除\\mathrm{ }中空格（horizonal~tail → horizonal_tail），上下文完整，公式完整。"
+  },
+  {
+    "idx": 283,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{vertical~tail}} = 0.452K_{\\mathrm{rht}}(1 + H_{t} / H_{\\nu})^{0.5}(W_{\\mathrm{dg}}N_{z})^{0.488}S_{\\mathrm{vt}}^{0.718}M^{0.341}}\\\\ & {\\qquad \\times L_{t}^{-1.0}(1 + S_{r} / S_{\\mathrm{vt}})^{0.348}A_{\\mathrm{vt}}^{0.223}}\\\\ & {\\qquad \\times (1 + \\lambda)^{0.25}(\\cos \\Lambda_{\\mathrm{vt}})^{-0.323}} \\end{array} \\tag{15.3}",
+    "fixed": [
+      "W_{vertical_tail} = 0.452K_{rht}(1 + H_t / H_\\nu)^{0.5}(W_{dg}N_z)^{0.488}S_{vt}^{0.718}M^{0.341} \\times L_t^{-1.0}(1 + S_r / S_{vt})^{0.348}A_{vt}^{0.223} \\times (1 + \\lambda)^{0.25}(\\cos \\Lambda_{vt})^{-0.323}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "合并多行公式为单行，去除\\mathrm{ }中空格和~，上下文完整，公式完整。"
+  },
+  {
+    "idx": 284,
+    "original": "W_{\\mathrm{fuselage}} = 0.499K_{\\mathrm{dwf}}W_{\\mathrm{dg}}^{0.35}N_{z}^{0.25}L^{0.5}\\times D^{0.849}W^{0.685} \\tag{15.4}",
+    "fixed": [
+      "W_{fuselage} = 0.499K_{dwf}W_{dg}^{0.35}N_z^{0.25}L^{0.5} \\times D^{0.849}W^{0.685}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }中空格，公式完整，上下文明确，无需补全。"
+  },
+  {
+    "idx": 285,
+    "original": "W_{\\mathrm{main~landing~gear}} = K_{\\mathrm{cb}}K_{\\mathrm{tpg}}(W_lN_l)^{0.25}L_m^{0.973} \\tag{15.5}",
+    "fixed": [
+      "W_{main_landing_gear} = K_{cb}K_{tpg}(W_lN_l)^{0.25}L_m^{0.973}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "将~替换为_，去除\\mathrm{ }，公式完整，上下文完整。"
+  },
+  {
+    "idx": 286,
+    "original": "\\begin{array}{r}W_{\\mathrm{nose~landing~gear}} = (W_lN_l)^{0.290}L_n^{0.5}N_{\\mathrm{nw}}^{0.525}\\\\ W_{\\mathrm{engine~mounts}} = 0.013N_{\\mathrm{en}}^{0.795}T^{0.579}N_z \\end{array} \\tag{15.7}",
+    "fixed": [
+      "W_{nose_landing_gear} = (W_lN_l)^{0.290}L_n^{0.5}N_{nw}^{0.525}",
+      "W_{engine_mounts} = 0.013N_{en}^{0.795}T^{0.579}N_z"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列的两个公式，去除\\mathrm{ }和~，上下文完整，两个公式均完整。"
+  },
+  {
+    "idx": 287,
+    "original": "W_{\\mathrm{firewall}} = 1.13S_{\\mathrm{fw}} \\tag{15.8}",
+    "fixed": [
+      "W_{firewall} = 1.13S_{fw}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }中空格，公式完整，上下文完整。"
+  },
+  {
+    "idx": 288,
+    "original": "W_{\\mathrm{engine~section}} = 0.01W_{\\mathrm{en}}^{0.717}N_{\\mathrm{en}}N_{z} \\tag{15.9}",
+    "fixed": [
+      "W_{engine_section} = 0.01W_{en}^{0.717}N_{en}N_z"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }和~，公式完整，上下文完整。"
+  },
+  {
+    "idx": 289,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{air~induction~system}} = 13.29K_{\\mathrm{vg}}L_{d}^{0.643}K_{d}^{0.182}}\\\\ & {\\qquad \\times N_{\\mathrm{en}}^{1.498}(L_{s} / L_{d})^{-0.373}D_{e}} \\end{array} \\tag{15.10}",
+    "fixed": [
+      "W_{air_induction_system} = 13.29K_{vg}L_d^{0.643}K_d^{0.182} \\times N_{en}^{1.498}(L_s / L_d)^{-0.373}D_e"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "合并多行，去除\\mathrm{ }和~，上下文完整，公式完整。"
+  },
+  {
+    "idx": 290,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{tailpipe}} = 3.5D_{e}L_{\\mathrm{tp}}N_{\\mathrm{en}}}\\\\ & {W_{\\mathrm{engine~cooling}} = 4.55D_{e}L_{\\mathrm{sh}}N_{\\mathrm{en}}}\\\\ & {W_{\\mathrm{oil~cooling}} = 37.82N_{\\mathrm{en}}^{1.023}}\\\\ & {W_{\\mathrm{engine~controls}} = 10.5N_{\\mathrm{en}}^{1.008}L_{\\mathrm{ec}}^{0.222}}\\\\ & {W_{\\mathrm{start~(pneumatic)}} = 0.025T_{e}^{0.760}N_{\\mathrm{en}}^{0.72}}\\\\ & {W_{\\mathrm{fuel~system~and~tanhks}} = 7.45V_{t}^{0.47}\\left(1 + \\frac{V_{i}}{V_{t}}\\right)^{-0.095}}\\\\ & {\\qquad \\times \\left(1 + \\frac{V_{p}}{V_{t}}\\right)N_{t}^{0.066}N_{\\mathrm{en}}^{0.052}\\left(\\frac{T\\cdot\\mathrm{SFC}}{1000}\\right)^{0.249}} \\end{array} \\tag{15.14}",
+    "fixed": [
+      "W_{tailpipe} = 3.5D_eL_{tp}N_{en}",
+      "W_{engine_cooling} = 4.55D_eL_{sh}N_{en}",
+      "W_{oil_cooling} = 37.82N_{en}^{1.023}",
+      "W_{engine_controls} = 10.5N_{en}^{1.008}L_{ec}^{0.222}",
+      "W_{start_(pneumatic)} = 0.025T_e^{0.760}N_{en}^{0.72}",
+      "W_{fuel_system_and_tanhks} = 7.45V_t^{0.47}(1 + \\frac{V_i}{V_t})^{-0.095} \\times (1 + \\frac{V_p}{V_t})N_t^{0.066}N_{en}^{0.052}(\\frac{T\\cdot SFC}{1000})^{0.249}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分7个并列公式，去除\\mathrm{ }和~，上下文完整，所有公式完整。注意：'tanhks'应为'tanks'，但未在上下文提及，故不修正。"
+  },
+  {
+    "idx": 291,
+    "original": "W_{\\mathrm{flight~controls}} = 36.28M^{0.003}S_{\\mathrm{cs}}^{0.489}N_{s}^{0.484}N_{c}^{0.127} \\tag{15.17}",
+    "fixed": [
+      "W_{flight_controls} = 36.28M^{0.003}S_{cs}^{0.489}N_s^{0.484}N_c^{0.127}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }和~，公式完整，上下文完整。"
+  },
+  {
+    "idx": 292,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{instruments}} = 8.0 + 36.37N_{\\mathrm{en}}^{0.676}N_{t}^{0.237}}\\\\ & {\\qquad +26.4(1 + N_{\\mathrm{ci}})^{1.356}} \\end{array} \\tag{15.18}",
+    "fixed": [
+      "W_{instruments} = 8.0 + 36.37N_{en}^{0.676}N_t^{0.237} + 26.4(1 + N_{ci})^{1.356}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "合并多行，去除\\mathrm{ }，公式完整，上下文完整。"
+  },
+  {
+    "idx": 293,
+    "original": "W_{\\mathrm{hydraulics}} = 37.23K_{\\mathrm{vsh}}N_{u}^{0.664} \\tag{15.19}",
+    "fixed": [
+      "W_{hydraulics} = 37.23K_{vsh}N_u^{0.664}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }，公式完整，上下文完整。"
+  },
+  {
+    "idx": 294,
+    "original": "W_{\\mathrm{electrical}} = 172.2K_{\\mathrm{mc}}R_{\\mathrm{kva}}^{0.152}N_{c}^{0.10}L_{a}^{0.10}N_{\\mathrm{gen}}^{0.091} \\tag{15.20}",
+    "fixed": [
+      "W_{electrical} = 172.2K_{mc}R_{kva}^{0.152}N_c^{0.10}L_a^{0.10}N_{gen}^{0.091}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }，公式完整，上下文完整。"
+  },
+  {
+    "idx": 295,
+    "original": "W_{\\mathrm{avionics}} = 2.117W_{\\mathrm{uav}}^{0.933} \\tag{15.21}",
+    "fixed": [
+      "W_{avionics} = 2.117W_{uav}^{0.933}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }，公式完整，上下文完整。"
+  },
+  {
+    "idx": 296,
+    "original": "W_{\\mathrm{furnishings}} = 217.6N_{c}(\\mathrm{includes~seats}) \\tag{15.22}",
+    "fixed": [
+      "W_{furnishings} = 217.6N_c(includes_seats)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }和~，括号内文字为说明性文本，保留原样，公式完整。"
+  },
+  {
+    "idx": 297,
+    "original": "W_{\\mathrm{air~conditioning~and~anti - ice}} = 201.6[(W_{\\mathrm{uav}} + 200N_{c}) / 1000]^{0.735} \\tag{15.23}",
+    "fixed": [
+      "W_{air_conditioning_and_anti - ice} = 201.6[(W_{uav} + 200N_c) / 1000]^{0.735}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "将~替换为_，保留'anti - ice'中的空格（因上下文未说明为笔误），公式完整。"
+  },
+  {
+    "idx": 298,
+    "original": "W_{\\mathrm{handling~gear}} = 3.2\\times 10^{-4}W_{\\mathrm{dg}} \\tag{15.24}",
+    "fixed": [
+      "W_{handling_gear} = 3.2 \\times 10^{-4}W_{dg}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除\\mathrm{ }和~，公式完整，上下文完整。"
+  },
+  {
+    "idx": 299,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{w i n g}} = 0.0051(W_{\\mathrm{d g}}N_{z})^{0.557}S_{w}^{0.649}A^{

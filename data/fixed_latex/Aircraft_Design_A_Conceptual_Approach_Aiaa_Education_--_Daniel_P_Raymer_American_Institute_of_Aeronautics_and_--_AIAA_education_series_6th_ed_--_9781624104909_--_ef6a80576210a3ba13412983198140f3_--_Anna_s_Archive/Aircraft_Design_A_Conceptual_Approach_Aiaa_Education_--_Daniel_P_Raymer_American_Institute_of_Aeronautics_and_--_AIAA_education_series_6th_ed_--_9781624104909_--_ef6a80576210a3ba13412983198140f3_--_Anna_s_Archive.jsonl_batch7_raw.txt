@@ -1,0 +1,203 @@
+[
+  {
+    "idx": 121,
+    "original": "\\begin{array}{rl} & {\\alpha_{\\mathrm{overline{se}}}\\simeq \\alpha_{\\mathrm{approach}} + 0.07V_{\\mathrm{approach}}(V\\mathrm{in}\\mathrm{kt})}\\\\ & {\\qquad = \\alpha_{\\mathrm{approach}} + 0.04V_{\\mathrm{approach}}(V\\mathrm{in}\\mathrm{km / hr})} \\end{array} \\tag{9.1}",
+    "fixed": [
+      "\\alpha_{\\mathrm{overline{se}}} \\simeq \\alpha_{\\mathrm{approach}} + 0.07V_{\\mathrm{approach}}(V\\mathrm{in}\\mathrm{kt})",
+      "\\alpha_{\\mathrm{approach}} + 0.04V_{\\mathrm{approach}}(V\\mathrm{in}\\mathrm{km / hr})"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列等式，去除array环境和多余空格、qquad；上下文完整，无需补全"
+  },
+  {
+    "idx": 122,
+    "original": "\\begin{array}{r}L = L_{\\mathrm{actual}}(\\mathrm{SF})^{0.4}\\\\ D = D_{\\mathrm{actual}}(\\mathrm{SF})^{0.5}\\\\ W = W_{\\mathrm{actual}}(\\mathrm{SF})^{1.1} \\end{array} \\tag{10.3}",
+    "fixed": [
+      "L = L_{\\mathrm{actual}}(\\mathrm{SF})^{0.4}",
+      "D = D_{\\mathrm{actual}}(\\mathrm{SF})^{0.5}",
+      "W = W_{\\mathrm{actual}}(\\mathrm{SF})^{1.1}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分三行独立公式，去除array环境和多余对齐符号；上下文明确，公式完整"
+  },
+  {
+    "idx": 123,
+    "original": "\\begin{array}{r l} & {W = 0.084T^{1.1}e^{(-0.045\\mathrm{~BPR})}\\mathrm{~(lb)} = 14.7T^{1.1}e^{(-0.045\\mathrm{~BPR})}\\qquad \\mathrm{~\\{kg\\}~}}\\\\ & {\\qquad L = 0.185T^{0.4}M^{0.2}\\mathrm{~(ft)} = 0.49T^{0.4}M^{0.2}\\qquad \\mathrm{~\\{m\\}~}}\\\\ & {\\qquad D = 0.033T^{0.5}e^{(0.04\\mathrm{~BPR})}\\mathrm{~(ft)} = 0.15T^{0.5}e^{(0.04\\mathrm{~BPR})}\\qquad \\mathrm{~\\{m\\}~}}\\\\ & {\\qquad \\mathrm{~SFC_{\\mathrm{max}}~}T = 0.67e^{(-0.12\\mathrm{~BPR})}\\mathrm{~(1 / hr)} = 19e^{(-0.12\\mathrm{~BPR})}\\qquad \\mathrm{~\\{mg / Ns\\}~}}\\\\ & {\\qquad T_{\\mathrm{cruise}} = 0.60T^{0.9}e^{(0.02\\mathrm{~BPR})}\\mathrm{~(lb)} = 0.35T^{0.9}e^{(0.02\\mathrm{~BPR})}\\qquad \\mathrm{~\\{kN\\}~}}\\\\ & {\\qquad \\mathrm{~SFC_{\\mathrm{cruise}}~} = 0.88e^{(-0.05\\mathrm{~BPR})}\\mathrm{~(1 / hr)} = 25e^{(-0.05\\mathrm{~BPR})}\\qquad \\mathrm{~\\{mg / Ns\\}~}} \\end{array} \\tag{10.4}",
+    "fixed": [
+      "W = 0.084T^{1.1}e^{-0.045\\mathrm{BPR}} = 14.7T^{1.1}e^{-0.045\\mathrm{BPR}}",
+      "L = 0.185T^{0.4}M^{0.2} = 0.49T^{0.4}M^{0.2}",
+      "D = 0.033T^{0.5}e^{0.04\\mathrm{BPR}} = 0.15T^{0.5}e^{0.04\\mathrm{BPR}}",
+      "SFC_{\\mathrm{max}}T = 0.67e^{-0.12\\mathrm{BPR}} = 19e^{-0.12\\mathrm{BPR}}",
+      "T_{\\mathrm{cruise}} = 0.60T^{0.9}e^{0.02\\mathrm{BPR}} = 0.35T^{0.9}e^{0.02\\mathrm{BPR}}",
+      "SFC_{\\mathrm{cruise}} = 0.88e^{-0.05\\mathrm{BPR}} = 25e^{-0.05\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分六行独立公式，去除单位括号、空格、qquad、~修饰符；上下文完整，公式完整"
+  },
+  {
+    "idx": 124,
+    "original": "W = 0.063T^{1.1}M^{0.25}e^{(-0.81\\mathrm{~BPR})}\\mathrm{~(lb)} = 11.1T^{1.1}M^{0.25}e^{(-0.81\\mathrm{~BPR})}\\mathrm{~\\{kg\\}~} \\tag{10.10}",
+    "fixed": [
+      "W = 0.063T^{1.1}M^{0.25}e^{-0.81\\mathrm{BPR}} = 11.1T^{1.1}M^{0.25}e^{-0.81\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位符号、空格、~修饰符；上下文明确，公式完整"
+  },
+  {
+    "idx": 125,
+    "original": "L = 0.255T^{0.4}M^{0.2}\\mathrm{(ft)} = 0.68T^{0.4}M^{0.2}\\qquad \\mathrm{\\{m\\}} \\tag{10.11}",
+    "fixed": [
+      "L = 0.255T^{0.4}M^{0.2} = 0.68T^{0.4}M^{0.2}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位括号、空格、qquad；上下文完整，公式完整"
+  },
+  {
+    "idx": 126,
+    "original": "D = 0.024T^{0.5}e^{(0.04\\mathrm{~BPR})}\\mathrm{~(ft)} = 0.11T^{0.5}e^{(0.04\\mathrm{~BPR})}\\qquad \\mathrm{\\{m\\}} \\tag{10.12}",
+    "fixed": [
+      "D = 0.024T^{0.5}e^{0.04\\mathrm{BPR}} = 0.11T^{0.5}e^{0.04\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位符号、空格、qquad；上下文完整，公式完整"
+  },
+  {
+    "idx": 127,
+    "original": "SFC_{\\mathrm{max}}T = 2.1e^{(-0.12\\mathrm{~BPR})}\\mathrm{~(1 / hr)} = 60e^{(-0.12\\mathrm{~BPR})}\\qquad \\mathrm{\\{mg / Ns\\}~} \\tag{10.13}",
+    "fixed": [
+      "SFC_{\\mathrm{max}}T = 2.1e^{-0.12\\mathrm{BPR}} = 60e^{-0.12\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位符号、空格、qquad；上下文完整，公式完整"
+  },
+  {
+    "idx": 128,
+    "original": "T_{\\mathrm{cruise}} = 2.4T^{0.74}e^{(0.023\\mathrm{~BPR})}\\mathrm{~(lb)} = 0.59T^{0.74}e^{(0.023\\mathrm{~BPR})}\\qquad \\mathrm{\\{kN\\}~} \\tag{10.14}",
+    "fixed": [
+      "T_{\\mathrm{cruise}} = 2.4T^{0.74}e^{0.023\\mathrm{BPR}} = 0.59T^{0.74}e^{0.023\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位符号、空格、qquad；上下文完整，公式完整"
+  },
+  {
+    "idx": 129,
+    "original": "SFC_{\\mathrm{cruise}} = 1.04e^{(-0.186\\mathrm{~BPR})}\\mathrm{~(1 / hr)} = 30e^{(-0.186\\mathrm{~BPR})}\\qquad \\mathrm{\\{mg / Ns\\}~} \\tag{10.15}",
+    "fixed": [
+      "SFC_{\\mathrm{cruise}} = 1.04e^{-0.186\\mathrm{BPR}} = 30e^{-0.186\\mathrm{BPR}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除单位符号、空格、qquad；上下文完整，公式完整"
+  },
+  {
+    "idx": 130,
+    "original": "\\frac{A_{\\mathrm{throat}}}{A_{\\mathrm{engine}}} = \\frac{(A / A^{*})_{\\mathrm{throat}}}{(A / A^{*})_{\\mathrm{engine}}} \\tag{10.16}",
+    "fixed": [
+      "\\frac{A_{\\mathrm{throat}}}{A_{\\mathrm{engine}}} = \\frac{(A / A^{*})_{\\mathrm{throat}}}{(A / A^{*})_{\\mathrm{engine}}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除多余空格和格式；上下文完整，公式完整"
+  },
+  {
+    "idx": 131,
+    "original": "\\frac{A}{A^{*}} = \\frac{1}{M}\\left(\\frac{1 + 0.2M^{2}}{1.2}\\right)^{3} \\tag{10.17}",
+    "fixed": [
+      "\\frac{A}{A^{*}} = \\frac{1}{M}\\left(\\frac{1 + 0.2M^{2}}{1.2}\\right)^{3}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，仅去除多余空格；上下文明确，无需补全"
+  },
+  {
+    "idx": 132,
+    "original": "\\dot{m} = \\rho VA \\tag{10.18}",
+    "fixed": [
+      "\\dot{m} = \\rho V A"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "添加V与A间空格以规范格式；上下文完整，公式完整"
+  },
+  {
+    "idx": 133,
+    "original": "A_{\\mathrm{capture}} = \\left[\\frac{\\dot{m}_e(1 + \\dot{m}_s / \\dot{m}_e)}{g\\rho_\\infty V_\\infty}\\right]\\left(1 + \\frac{A_B}{A_C}\\right) \\tag{10.19}",
+    "fixed": [
+      "A_{\\mathrm{capture}} = \\left[\\frac{\\dot{m}_e(1 + \\dot{m}_s / \\dot{m}_e)}{g\\rho_\\infty V_\\infty}\\right]\\left(1 + \\frac{A_B}{A_C}\\right)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，仅标准化格式；上下文明确，无需补全"
+  },
+  {
+    "idx": 134,
+    "original": "\\frac{A_{\\infty}}{A_C} = \\frac{\\dot{m}_e + \\dot{m}_s + \\dot{m}_{\\mathrm{BL}} + \\dot{m}_{\\mathrm{bypass}}}{g\\rho_{\\infty}V_{\\infty}A_C} \\tag{10.20}",
+    "fixed": [
+      "\\frac{A_{\\infty}}{A_C} = \\frac{\\dot{m}_e + \\dot{m}_s + \\dot{m}_{\\mathrm{BL}} + \\dot{m}_{\\mathrm{bypass}}}{g\\rho_{\\infty}V_{\\infty}A_C}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，仅标准化格式；上下文明确，无需补全"
+  },
+  {
+    "idx": 135,
+    "original": "(V_{\\mathrm{tip}})_{\\mathrm{static}} = \\pi nD \\tag{10.21}",
+    "fixed": [
+      "(V_{\\mathrm{tip}})_{\\mathrm{static}} = \\pi n D"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "添加n与D间空格；上下文完整，公式完整"
+  },
+  {
+    "idx": 136,
+    "original": "(V_{\\mathrm{tip}})_{\\mathrm{helical}} = \\sqrt{V_{\\mathrm{tip}}^2 + V^2} \\tag{10.22}",
+    "fixed": [
+      "(V_{\\mathrm{tip}})_{\\mathrm{helical}} = \\sqrt{V_{\\mathrm{tip}}^2 + V^2}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，上下文明确，无需补全"
+  },
+  {
+    "idx": 137,
+    "original": "D = K_{p}\\sqrt[4]{\\mathrm{Power}} \\tag{10.23}",
+    "fixed": [
+      "D = K_{p} \\sqrt[4]{\\mathrm{Power}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "添加K_p与根号间空格；上下文完整，公式完整"
+  },
+  {
+    "idx": 138,
+    "original": "W / P = K(P / A)^{-.35} \\tag{10.24}",
+    "fixed": [
+      "W / P = K (P / A)^{-0.35}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "将-.35规范为-0.35，添加K与括号间空格；上下文完整，公式完整"
+  },
+  {
+    "idx": 139,
+    "original": "\\begin{array}{rl}{A_{\\mathrm{cooling}} = \\frac{\\mathrm{bhp}}{2.2V_{\\mathrm{climb}}}} & {\\{\\mathrm{ft}^2\\}}\\\\ {A_{\\mathrm{cooling}} = \\frac{P}{58V_{\\mathrm{climb}}}} & {\\{\\mathrm{m}^2\\}} \\end{array} \\tag{10.26}",
+    "fixed": [
+      "A_{\\mathrm{cooling}} = \\frac{\\mathrm{bhp}}{2.2V_{\\mathrm{climb}}}",
+      "A_{\\mathrm{cooling}} = \\frac{P}{58V_{\\mathrm{climb}}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分两个并列公式，去除单位括号和array环境；上下文完整，公式完整"
+  },
+  {
+    "idx": 140,
+    "original": "\\begin{array}{r l r} & {} & {(\\mathrm{Max~Static~Load}) = W\\frac{N_{d}}{B}}\\\\ & {} & {(\\mathrm{Max~Static~Load})_{\\mathrm{nose}} = W\\frac

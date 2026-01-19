@@ -1,0 +1,538 @@
+formulas:
+- id: F_lift_equals_weight
+  name_zh: 升力等于重量
+  expr: L = W0 * g
+  category: tilt_rotor
+- id: F_cruise_power_from_lift_to_drag_ratio
+  name_zh: 巡航功率与升阻比关系
+  expr: P_cruise = Vc * W0 * g / K
+  category: tilt_rotor
+- id: F_wing_loading
+  name_zh: 机翼载荷
+  expr: WS = W0 * g / Swing
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 机翼重量估算
+  expr: Wwing = 19.938 * W0**0.389 * Swing**0.843 * (1 + cos(Lambda_w0_25))**-1.017 * K**0.192 * t_r**-0.098 * (0.01 * nu_mD)**0.232 * (1 + K_tge)**0.407 * (1 + K_rt)**-1.159
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 最大推力从功率推导
+  expr: Tmax = P_cruise * K / Vc
+  category: tilt_rotor
+- id: F_cruise_max_speed_power
+  name_zh: 巡航最大速度功率
+  expr: Vc = L / T
+  category: tilt_rotor
+- id: F_dynamic_pressure
+  name_zh: 动压
+  expr: q = 0.5 * rhoc * Vc**2
+  category: tilt_rotor
+- id: F_lift
+  name_zh: 升力
+  expr: L = 0.5 * rhoc * Vc**2 * Swing * CL
+  category: tilt_rotor
+  extractid: Flight_Performance_Analysis_Extraction_Parameters
+- id: F_mach_number_definition
+  name_zh: 马赫数定义
+  expr: Mach = V_tip / a
+  category: tilt_rotor
+- id: F_tip_chord_from_root_chord_taper
+  name_zh: 翼尖弦长与根弦长关系
+  expr: c = 0.01437 * (W0 / 2)**0.4943 / (N_b / 2)**0.6272
+  category: tilt_rotor
+- id: F_wingspan_from_aspect_ratio_area
+  name_zh: 翼展由展弦比和面积推导
+  expr: B = sqrt(Swing * A)
+  category: tilt_rotor
+- id: F_thickness_ratio
+  name_zh: 厚度比
+  expr: tc = c * thick
+  category: tilt_rotor
+- id: F_total_propulsion_efficiency
+  name_zh: 总推进效率
+  expr: eta = (T * Vc) / P_cruise
+  category: tilt_rotor
+- id: F_battery_mass_from_required_power_sigma
+  name_zh: 电池质量由所需功率和能量密度推导
+  expr: Wbat = P_cruise * E * T / sigmadczh
+  category: tilt_rotor
+- id: F_single_propeller_vertical_acceleration_thrust
+  name_zh: 单个旋翼垂直加速度推力
+  expr: Tla = (W0 * g) / np
+  category: tilt_rotor
+- id: F_maximum_required_thrust_with_safety_factor
+  name_zh: 带安全系数的最大所需推力
+  expr: Tmax = Tla * asafe
+  category: tilt_rotor
+- id: F_motor_propeller_total_efficiency
+  name_zh: 电机螺旋桨总效率
+  expr: etampt = P_cruise / P_av
+  category: tilt_rotor
+- id: F_power_to_weight_required_climb
+  name_zh: 所需爬升功率重量比
+  expr: PreqW0climb = P_cruise / W0
+  category: tilt_rotor
+- id: F_cruise_speed_from_max_speed
+  name_zh: 巡航速度从最大速度推导
+  expr: Vc = Vmax * kcruise
+  category: tilt_rotor
+- id: F_takeoff_lift_coefficient_from_clmax
+  name_zh: 起飞升力系数从CLmax推导
+  expr: CLTO = CLmax * kLTO
+  category: tilt_rotor
+- id: F_payload_weight_from_takeoff_weight
+  name_zh: 有效载荷重量从起飞重量推导
+  expr: Wload = W0 - W_empty - W_fuel
+  category: tilt_rotor
+- id: F_fold_location_from_wingspan
+  name_zh: 折叠位置从翼展推导
+  expr: klocation = fold_position / B
+  category: tilt_rotor
+- id: F_fold_chord_from_root_chord
+  name_zh: 折叠弦长从根弦长推导
+  expr: kchord = c_fold / Cr
+  category: tilt_rotor
+- id: F_wing_loading_from_stall_speed
+  name_zh: 机翼载荷从失速速度推导
+  expr: WS = (2 * W0 * g) / (rhoc * Vs**2 * CLmax)
+  category: tilt_rotor
+- id: F_induced_drag_factor_from_aspect_ratio_efficiency
+  name_zh: 诱导阻力因子从展弦比和效率推导
+  expr: Kmax = 1 / (pi * A * e)
+  category: tilt_rotor
+- id: F_oswald_efficiency_from_aspect_ratio
+  name_zh: 奥斯瓦尔德效率从展弦比推导
+  expr: e = 1 / (1 + 0.045 * A**0.68)
+  category: tilt_rotor
+- id: F_optimal_lift_coefficient_min_drag
+  name_zh: 最小阻力最优升力系数
+  expr: CLstar = sqrt(CD0 / Kmax)
+  category: tilt_rotor
+- id: F_max_lift_to_drag_ratio
+  name_zh: 最大升阻比
+  expr: Kmax = CLstar / CDstar
+  category: tilt_rotor
+- id: F_thrust_to_weight_from_max_speed_drag
+  name_zh: 推重比从最大速度阻力推导
+  expr: TW = CD0 / (CLstar * eta)
+  category: tilt_rotor
+- id: F_thrust_to_weight_takeoff_ground_roll
+  name_zh: 起飞滑跑推重比
+  expr: TW = (muG + CD0) / CLmaxTO
+  category: tilt_rotor
+- id: F_cruise_max_speed_power
+  name_zh: 巡航最大速度功率
+  expr: P_cruise = Vc * W0 * g / K
+  category: tilt_rotor
+- id: F_generated_heat_fuel_cell_stack
+  name_zh: 燃料电池堆产热
+  expr: Qcreated = Istack * Vcell * (1 - eta)
+  category: tilt_rotor
+- id: F_air_cooling_heat_from_temperature_difference
+  name_zh: 空气冷却热从温差推导
+  expr: Qaircooling = mair * Cp * (Tstack - Teno)
+  category: tilt_rotor
+- id: F_liquid_cooling_heat_from_temperature_difference
+  name_zh: 液体冷却热从温差推导
+  expr: Qliquid = mcooling * Cpcooling * (Tcoolingout - Tcoolingin)
+  category: tilt_rotor
+- id: F_air_flow_from_stack_current
+  name_zh: 空气流量从堆电流推导
+  expr: mair = Istack * F / (lambdaair * Mair)
+  category: tilt_rotor
+- id: F_hydrogen_flow_from_stack_current
+  name_zh: 氢气流量从堆电流推导
+  expr: mH2 = Istack * F / (lambdaH2 * MH2)
+  category: tilt_rotor
+- id: F_blade_weight
+  name_zh: 旋翼叶片重量
+  expr: Wblade = 0.0024419 * chi_blade * f_tilt * N_rotor * N_blade**0.53479 * R**1.74231 * c**0.77291 * V_tip**0.87562 * V_blade**2.51048
+  category: tilt_rotor
+- id: F_hub_weight
+  name_zh: 旋翼毂重量
+  expr: Whub = 0.0061182 * chi_hub * N_rotor * N_blade**0.20373 * R**0.60406 * V_tip**0.52803 * V_hub**1.00218 * (Wblade / N_rotor)**0.87127
+  category: tilt_rotor
+- id: F_spin_weight
+  name_zh: 旋翼轴重量
+  expr: Wspin = 7.386 * chi_spin * N_rotor * D_spin**2
+  category: tilt_rotor
+- id: F_fold_weight
+  name_zh: 折叠机构重量
+  expr: Wfold = chi_fold * f_fold * Wblade
+  category: tilt_rotor
+- id: F_wing_loading_from_drag_min_condition
+  name_zh: 机翼载荷从最小阻力条件推导
+  expr: WS = sqrt(2 * W0 * g * CD0 / (rhoc * pi * A * e))
+  category: tilt_rotor
+- id: F_reynolds_number
+  name_zh: 雷诺数
+  expr: Re = rhoc * Vc * c / mu
+  category: tilt_rotor
+- id: F_max_speed_from_requirement_interval
+  name_zh: 最大速度从需求区间推导
+  expr: Vmax = Vmaxlow + (Vmaxup - Vmaxlow) * kcruise
+  category: tilt_rotor
+- id: F_zero_lift_drag_from_wetted_area
+  name_zh: 零升阻力从湿面积推导
+  expr: CD0 = Cf * Swetted / Sref
+  category: tilt_rotor
+- id: F_clmax_takeoff_configuration
+  name_zh: 起飞构型最大升力系数
+  expr: CLmaxTO = CLmax + deltaLflap + deltaLslat
+  category: tilt_rotor
+- id: F_drag_polar_parabolic
+  name_zh: 阻力极线抛物线形式
+  expr: CD = CD0 + Kmax * CL**2
+  category: tilt_rotor
+- id: F_mean_aerodynamic_chord_trapezoidal_wing
+  name_zh: 梯形机翼平均气动弦长
+  expr: cbar = (2/3) * Cr * (1 + lambda + lambda**2) / (1 + lambda)
+  category: tilt_rotor
+- id: F_root_chord_trapezoidal_wing
+  name_zh: 梯形机翼根弦长
+  expr: Cr = Swing / (B/2 * (1 + lambda))
+  category: tilt_rotor
+- id: F_tip_chord_from_root_chord_taper
+  name_zh: 翼尖弦长与根弦长关系
+  expr: ctip = Cr * lambda
+  category: tilt_rotor
+- id: F_wetted_area_estimation
+  name_zh: 湿面积估算
+  expr: Swetted = Swettedwing + Swettedbody + Swettedtail
+  category: tilt_rotor
+- id: F_fuselage_length_from_mass
+  name_zh: 机身长度从质量推导
+  expr: Lf = lf * W0**0.333
+  category: tilt_rotor
+- id: F_fuselage_diameter_from_mass
+  name_zh: 机身直径从质量推导
+  expr: Df = df * W0**0.333
+  category: tilt_rotor
+- id: F_battery_capacity_from_motor_current_time
+  name_zh: 电池容量从电机电流和时间推导
+  expr: Q = Imotor * time
+  category: tilt_rotor
+- id: F_max_load_power_from_max_thrust_efficiency
+  name_zh: 最大负载功率从最大推力效率推导
+  expr: Ploadmax = Tmax * Vc * etampt
+  category: tilt_rotor
+- id: F_max_single_propeller_load_power
+  name_zh: 单个旋翼最大负载功率
+  expr: Ploadmax1 = Ploadmax / np
+  category: tilt_rotor
+- id: F_back_emf_constant_from_motor_parameters
+  name_zh: 反电动势常数从电机参数推导
+  expr: KV = Um0 / Im0
+  category: tilt_rotor
+- id: F_cruise_power_from_lift_to_drag_ratio
+  name_zh: 巡航功率与升阻比关系
+  expr: P_cruise = Vc * W0 * g / K
+  category: tilt_rotor
+- id: F_time_over_specific_energy_equivalent_sigma
+  name_zh: 时间与比能量等效关系
+  expr: time = Ebatstar * Wbat / Preq
+  category: tilt_rotor
+- id: F_air_flow_from_stack_current
+  name_zh: 空气流量从堆电流推导
+  expr: mair = Istack * F / (lambdaair * Mair)
+  category: tilt_rotor
+- id: F_hydrogen_flow_from_stack_current
+  name_zh: 氢气流量从堆电流推导
+  expr: mH2 = Istack * F / (lambdaH2 * MH2)
+  category: tilt_rotor
+- id: F_fold_location_from_wingspan
+  name_zh: 折叠位置从翼展推导
+  expr: klocation = fold_position / B
+  category: tilt_rotor
+- id: F_fold_chord_from_root_chord
+  name_zh: 折叠弦长从根弦长推导
+  expr: kchord = c_fold / Cr
+  category: tilt_rotor
+- id: F_cruise_speed_from_max_speed
+  name_zh: 巡航速度从最大速度推导
+  expr: Vc = Vmax * kcruise
+  category: tilt_rotor
+- id: F_takeoff_lift_coefficient_from_clmax
+  name_zh: 起飞升力系数从CLmax推导
+  expr: CLTO = CLmax * kLTO
+  category: tilt_rotor
+- id: F_payload_weight_from_takeoff_weight
+  name_zh: 有效载荷重量从起飞重量推导
+  expr: Wload = W0 - W_empty - W_fuel
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼总重量公式
+  expr: W_Rotor = W_blade + W_hub + W_spin + W_fold
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 基本结构重量公式
+  expr: W_basic = 25.41 * chi_basic * f_LGic * f_LGret * f_ramp * (W_MTO / 1000)**0.4879 * (n_z * W_SD / 1000)**0.2025 * S_lmtr**0.1676 * l**0.1512
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 折叠部件重量公式
+  expr: W_wfold = chi_wfold * f_wfold * (W_wing + W_tip)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 余量重量公式
+  expr: W_mar = chi_mar * f_mar * W_basic
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 增压系统重量公式
+  expr: W_press = chi_press * f_press * W_basic
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 机身总重量公式
+  expr: W_Fuselage = W_basic + W_wfold + W_mar + W_press
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 水平尾翼重量公式
+  expr: W_ht = chi_ht * S_ht * (0.00395 * S_ht**0.2 * V_dive - 0.4885)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 垂直尾翼重量公式
+  expr: W_vt = chi_vt * S_vt * (0.00395 * S_vt**0.2 * V_dive - 0.4885)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 尾翼总重量公式
+  expr: W_Empennage = W_ht + W_vt
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 起落架重量公式
+  expr: W_LG = chi_LG * f_LG * W_MTO
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 起落架回收重量公式
+  expr: W_LGret = chi_LGret * f_LGret * W_LG
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 起落架舱重量公式
+  expr: W_LGcw = chi_LGrw * f_LGrw * (W_LG + W_LGret)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 起落架系统总重量公式
+  expr: W_AG = W_LG + W_LGret + W_LGcw
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 支撑结构重量公式
+  expr: W_supt = chi_supt * 0.0412 * (1 - f_airind) * (W_eng / N_eng)**1.1433 * N_eng**1.3762
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 整流罩重量公式
+  expr: W_cowl = chi_cowl * 0.2315 * S_nac**1.3476
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 挂架重量公式
+  expr: W_pylon = chi_pylon * f_pylon * W_MTO
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 进气系统重量公式
+  expr: W_airind = chi_airind * 0.0412 * f_airind * (W_eng / N_eng)**1.1433 * N_eng**1.3762
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 推进系统总重量公式
+  expr: W_NA = W_supt + W_cowl + W_pylon + W_airind
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 发动机总重量公式
+  expr: W_eng = chi_eng * N_eng * W_oneeng
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 排气系统重量公式
+  expr: W_exh = chi_exh * N_eng * (K_0exh + K_1exh * P)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 加速系统重量公式
+  expr: W_acc = 2.0088 * chi_acc * f_lub * (W_oneeng)**0.5919 * N_eng**0.7858
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 发动机总重量公式
+  expr: W_Engine = W_eng + W_exh + W_acc
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 油箱重量公式
+  expr: W_tank = 0.4341 * chi_tank * C_int**0.7717 * N_int**0.5897 * f_cwf_bt**1.9491
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 管路重量公式
+  expr: W_plumb = chi_plumb * (K_0plumb + K_Iplumb * (0.01 * N_plumb + 0.06 * N_eng) * (F / N_eng)**0.866)
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 燃油系统总重量公式
+  expr: W_Fuel = W_tank + W_plumb
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 齿轮箱单体重量公式
+  expr: w_gbrs = 95.7634 * N_rotor**0.38553 * P_DSlimit**0.78137 * W_eng**0.09899 / W_rotor**0.80686
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 齿轮箱总重量公式
+  expr: W_gb = chi_gb * (I - f_rs) * w_gbrs
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 离合器重量公式
+  expr: W_rs = chi_rs * f_rs * w_gbrs
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 动力传动系统重量公式
+  expr: W_ds = 1.166 * chi_ds * Q_DSlimit**0.3828 * x_hub**1.0455 * N_ds**0.3909 * (0.0 * If_P)**0.2693
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼轴承重量公式
+  expr: W_rb = 0.000871 * chi_rb * W_blade * (0.01 * V_tip)**2
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 驱动系统总重量公式
+  expr: W_Drive = W_gb + W_rs + W_ds + W_rb
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼主结构重量公式
+  expr: W_Rwnb = 2.1785 * chi_Rwnb * f_nbsv * W_MTO**0.3999 * N_rotor**1.3855
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼主翼面重量系数公式
+  expr: w_f_c = 0.2873 * f_mbsv * (N_rotor * N_blade)**0.6257 * c**1.3286 * (0.01 * V_tip)**2.112 * f_RWred**0.8942
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼主翼面重量公式
+  expr: W_Rwmb = chi_Rwmb * (I - f_Rwhyd) * w_f_c
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼次结构重量公式
+  expr: W_Rwb = 0.02324 * chi_Rwb * f_bsv * (N_rotor * N_blade)**1.0042 * N_rotor**0.1155 * c**2.2296 * (0.01 * V_tip)**3.1877
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 控制阀主重量公式
+  expr: W_CVmb = chi_CVmb * f_CVmb * W_MTO
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 垂直控制重量公式
+  expr: W_Vmb = chi_Vmb * f_Vmb * W_Vmb
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 控制阀总重量公式
+  expr: W_CV = W_CVmb + W_CVnb
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 飞行控制系统总重量公式
+  expr: W_FCS = W_Rwnb + W_Rwmb + W_Rwb + W_CV
+  category: tilt_rotor
+- id: F_wing_weight_estimation
+  name_zh: 旋翼液压系统重量公式
+  expr: W_RWhyd = chi_RWhyd * f_RWhyd * w_f_c
+  category: tilt_rotor
+- id: F_lift
+  name_zh: 升力公式
+  expr: L = 0.5 * rhoc * u**2 * (Swing + S_hs) * CL
+  category: tilt_rotor
+- id: F_drag_polar_parabolic
+  name_zh: 阻力极曲线（抛物线型）
+  expr: CD = CD0 + CL**2 / (pi * A * e)
+  category: tilt_rotor
+- id: F_dynamic_pressure
+  name_zh: 动压公式
+  expr: q = 0.5 * rhoc * u**2
+  category: tilt_rotor
+- id: F_thrust_to_weight_takeoff_ground_roll
+  name_zh: 推重比（起飞地面滑跑）
+  expr: W_CVhyd = chi_CFhyd * f_CVhyd * W_CVmb
+  category: tilt_rotor
+- id: F_total_propulsion_efficiency
+  name_zh: 总推进效率
+  expr: W_Hyd = W_RWhyd + W_CVhyd
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 最大推力与功率关系
+  expr: W_eq = chi_eq * f_eq * W_MTO
+  category: tilt_rotor
+- id: F_motor_propeller_total_efficiency
+  name_zh: 电机螺旋桨总效率
+  expr: P_r = (1/xi) * (P_pr + P_i + P_p + P_c)
+  category: tilt_rotor
+- id: F_max_load_power_from_max_thrust_efficiency
+  name_zh: 最大负载功率与最大推力效率
+  expr: P_i + P_p + P_c = T * (U_c + K_ind * f_G * nu_i)
+  category: tilt_rotor
+- id: F_single_propeller_vertical_acceleration_thrust
+  name_zh: 单螺旋桨垂直加速度推力
+  expr: nu_i = (T / (2 * rhoc * A))**0.5
+  category: tilt_rotor
+- id: F_single_propeller_vertical_acceleration_thrust
+  name_zh: 单螺旋桨垂直加速度推力（归一化）
+  expr: nu_i_bar = (C_T / (2 * kappa))**0.5
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 前飞诱导功率修正
+  expr: P_pr = P_pr0 * (1 + mu**2)
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 前飞诱导功率修正（修正系数）
+  expr: P_pr = P_pr0 * (1 + 1.7 * mu**2)
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 前飞诱导功率基础值
+  expr: P_pr0 = (1/8) * sigma * A * rhoc * (Omega * R)**3 * c_d
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 前进比定义
+  expr: mu = u / (Omega * R)
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 前飞诱导功率完整表达式
+  expr: P_pr = (1/8) * sigma * A * rhoc * (Omega * R)**3 * c_d * (1 + 4.7 * mu**2)
+  category: tilt_rotor
+- id: F_max_thrust_from_power
+  name_zh: 推力系数定义
+  expr: C_T = T / (rhoc * A * (Omega * R)**2)
+  category: tilt_rotor
+- id: F_power_to_weight_required_climb
+  name_zh: 功率系数定义
+  expr: C_p = P_r / (rhoc * A * (Omega * R)**3)
+  category: tilt_rotor
+- id: F_motor_propeller_total_efficiency
+  name_zh: 功率系数与推力系数关系
+  expr: C_P = C_T * (K_ind * f_G * nu_i + U_c_bar) + (1/8) * sigma * c_d * (1 + 4.7 * mu**2)
+  category: tilt_rotor
+- id: F_total_propulsion_efficiency
+  name_zh: 总功率与功率系数关系
+  expr: P_r = (1/xi) * rhoc * A * (Omega * R)**3 * C_P
+  category: tilt_rotor
+- id: F_total_propulsion_efficiency
+  name_zh: 总功率与功率系数关系（效率η_p）
+  expr: P_r = (1/eta_p) * rhoc * A * (Omega * R)**3 * C_P
+  category: tilt_rotor
+- id: F_motor_propeller_total_efficiency
+  name_zh: 功率系数简化表达式
+  expr: P_r = (1/eta_p) * rhoc * A * (Omega * R)**3 * (C_T * (K_ind * nu_i_bar) + (1/8) * pi * c_d)
+  category: tilt_rotor
+- id: F_dynamic_pressure
+  name_zh: 动压公式
+  expr: D = 0.5 * rhoc * u**2 * (Swing * CD + CX)
+  category: tilt_rotor
+- id: F_generated_heat_fuel_cell_stack
+  name_zh: 燃料电池堆产热
+  expr: m_fuel_dot = 3600 * (4.0539e-18 * shp**5 - 3.16298e-14 * shp**4 + 9.2087e-11 * shp**3 - 1.2156e-7 * shp**2 + 1.1476e-4 * shp + 0.01256)
+  category: tilt_rotor
+- id: F_payload_weight_from_takeoff_weight
+  name_zh: 燃油重量差
+  expr: W_fc = W_fuel - Delta_W_fc
+  category: tilt_rotor
+- id: F_payload_weight_from_takeoff_weight
+  name_zh: 可用重量
+  expr: W_av = W0 - 0.5 * W_fc - Delta_W_fc_climb - Delta_W_fc_hover
+  category: tilt_rotor
+- id: F_lift_equals_weight
+  name_zh: 最大起飞距离
+  expr: L_max = Delta_L_takeoff + W_fc / W_fin_kn + Delta_L_tanding
+  category: tilt_rotor
+- id: F_lift_equals_weight
+  name_zh: 最大起飞升力
+  expr: T_max = Delta_T_takeoff + W_fc / W_fin + Delta_T_tanding
+  category: tilt_rotor
+- id: F_wing_loading
+  name_zh: 机翼面积水平尾翼
+  expr: S_HT = (V_HT * Swing * c) / l_HT
+  category: tilt_rotor
+- id: F_wing_loading
+  name_zh: 机翼面积垂直尾翼
+  expr: S_VT = (V_VT * Swing * b) / l_VT
+  category: tilt_rotor

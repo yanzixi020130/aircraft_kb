@@ -1,0 +1,170 @@
+[
+  {
+    "idx": 481,
+    "original": "S_{\\mathrm{TR}} = \\sqrt{R^2 - (R - h_{\\mathrm{obstacle}})^2} \\tag{17.111}",
+    "fixed": [
+      "S_TR = sqrt(R^2 - (R - h_obstacle)^2)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式为单条，无并列；去除\\mathrm和\\tag修饰，保留数学结构；上下文完整，无需补全。"
+  },
+  {
+    "idx": 482,
+    "original": "S_{c} = \\frac{h_{\\mathrm{obstacle}} - h_{\\mathrm{TR}}}{\\tan\\gamma_{\\mathrm{climb}}} \\tag{17.112}",
+    "fixed": [
+      "S_c = (h_obstacle - h_TR) / tan(gamma_climb)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式；去除\\mathrm和\\tag，简化分式与三角函数表示；上下文完整，无残缺。"
+  },
+  {
+    "idx": 483,
+    "original": "\\begin{array}{r l} & {\\mathrm{BFL} = \\frac{0.863}{1 + 2.3G}\\left(\\frac{W / S}{\\rho g C_{L_{\\mathrm{climb}}}} +h_{\\mathrm{obstacle}}\\right)\\left(\\frac{1}{T_{\\mathrm{av}} / W - U} +2.7\\right)}\\\\ & {\\qquad +\\left(\\frac{655}{\\sqrt{\\rho / \\rho_{\\mathrm{SL}}}}\\right)} \\end{array} \\tag{17.113}",
+    "fixed": [
+      "BFL = (0.863 / (1 + 2.3*G)) * ((W / S) / (rho * g * C_L_climb) + h_obstacle) * (1 / (T_av / W - U) + 2.7) + (655 / sqrt(rho / rho_SL))"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式（虽分两行，但为同一等式）；去除\\mathrm、\\tag、array结构，合并为单行表达式；上下文完整，无残缺。"
+  },
+  {
+    "idx": 484,
+    "original": "T_{\\mathrm{av}} = 0.75T_{\\mathrm{takeoff}}\\left[\\frac{5 + \\mathrm{BPR}}{4 + \\mathrm{BPR}}\\right] \\tag{17.114}",
+    "fixed": [
+      "T_av = 0.75*T_takeoff * ((5 + BPR) / (4 + BPR))"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式；去除\\mathrm和\\tag，简化分数结构；上下文完整，无残缺。"
+  },
+  {
+    "idx": 485,
+    "original": "T_{\\mathrm{av}} = 5.75\\mathrm{bhp}\\left[\\frac{(\\rho / \\rho_{\\mathrm{SL}})N_eD_p^2}{\\mathrm{bhp}}\\right]^{\\frac{1}{3}} \\tag{17.115}",
+    "fixed": [
+      "T_av = 5.75*bhp * (((rho / rho_SL) * N_e * D_p^2) / bhp)^(1/3)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式；去除\\mathrm和\\tag，标准化指数与分式；上下文完整，无残缺。"
+  },
+  {
+    "idx": 486,
+    "original": "\\begin{array}{rlr}\\mathrm{E n g i n e e r i n g h o u r s} = H_E = 4.86W_e^{0.777}V^{0.894}Q^{0.163} & \\{\\mathrm{f p s}\\} \\\\ = 5.18W_e^{0.777}V^{0.894}Q^{0.163} & \\{\\mathrm{m k s}\\} \\\\ \\mathrm{T o o l i n g h o u r s} = H_T = 5.99W_e^{0.777}V^{0.696}Q^{0.263} & \\{\\mathrm{f p s}\\} \\\\ = 7.22W_e^{0.777}V^{0.696}Q^{0.263} & \\{\\mathrm{m k s}\\} \\\\ \\mathrm{M f g h o u r s} = H_M = 7.37W_e^{0.82}V^{0.484}Q^{0.641} & \\{\\mathrm{f p s}\\} \\\\ = 10.5W_e^{0.82}V^{0.484}Q^{0.641} & \\{\\mathrm{m k s}\\} \\end{array} \\tag{18.1}",
+    "fixed": [
+      "Engineering_hours = H_E = 4.86*W_e^0.777*V^0.894*Q^0.163",
+      "H_E = 5.18*W_e^0.777*V^0.894*Q^0.163",
+      "Tooling_hours = H_T = 5.99*W_e^0.777*V^0.696*Q^0.263",
+      "H_T = 7.22*W_e^0.777*V^0.696*Q^0.263",
+      "Mfg_hours = H_M = 7.37*W_e^0.82*V^0.484*Q^0.641",
+      "H_M = 10.5*W_e^0.82*V^0.484*Q^0.641"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列公式：每行独立等式，去除\\{fps\\}、\\{mks\\}等单位标注和\\mathrm空格干扰；上下文完整，无残缺。"
+  },
+  {
+    "idx": 487,
+    "original": "\\begin{array}{rlr}\\mathrm{Devel~support~cost} = C_D = 91.3W_e^{0.630}V^{1.3} & \\{\\mathrm{fps}\\} \\\\ = 67.4W_e^{0.630}V^{1.3} & \\{\\mathrm{mks}\\} \\end{array} \\tag{18.5}",
+    "fixed": [
+      "Devel_support_cost = C_D = 91.3*W_e^0.630*V^1.3",
+      "C_D = 67.4*W_e^0.630*V^1.3"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两条并列公式（fps/mks版本）；去除单位标注和\\mathrm；上下文完整，无残缺。"
+  },
+  {
+    "idx": 488,
+    "original": "\\begin{array}{r}\\mathrm{Flttestcost} = C_F = 2498W_e^{0.325}V^{0.822}\\mathrm{FTA}^{1.21}\\{\\mathrm{fps}\\} \\\\ = 1947W_e^{0.325}V^{0.822}\\mathrm{FTA}^{1.21}\\{\\mathrm{mks}\\} \\end{array} \\tag{18.6}",
+    "fixed": [
+      "Flttestcost = C_F = 2498*W_e^0.325*V^0.822*FTA^1.21",
+      "C_F = 1947*W_e^0.325*V^0.822*FTA^1.21"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两条并列公式（fps/mks）；去除\\{\\mathrm{fps}\\}等单位符号和\\mathrm；上下文完整，无残缺。"
+  },
+  {
+    "idx": 489,
+    "original": "\\begin{array}{r l} & {\\mathrm{Mfg~materials~cost} = C_{M} = 22.1W_{e}^{0.921}V^{0.621}Q^{0.799}\\qquad \\{\\mathrm{fps}\\}}\\\\ & {\\qquad = 31.2W_{e}^{0.921}V^{0.621}Q^{0.799}\\qquad \\{\\mathrm{mks}\\}} \\end{array} \\tag{18.7}",
+    "fixed": [
+      "Mfg_materials_cost = C_M = 22.1*W_e^0.921*V^0.621*Q^0.799",
+      "C_M = 31.2*W_e^0.921*V^0.621*Q^0.799"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两条并列公式（fps/mks）；去除单位和多余空格；上下文完整，无残缺。"
+  },
+  {
+    "idx": 490,
+    "original": "\\begin{array}{rl} & {+0.969T_{\\mathrm{turbineinlet}} - 2228]\\qquad \\{\\mathrm{fps}\\}}\\\\ & {= 3112[9.66T_{\\mathrm{max}} + 243.25M_{\\mathrm{max}}}\\\\ & {+1.74T_{\\mathrm{turbineinlet}} - 2228]\\qquad \\{\\mathrm{mks}\\}} \\end{array} \\tag{18.8}",
+    "fixed": [
+      "C_eng = 3112*(0.043*T_max + 243.25*M_max + 0.969*T_turbineinlet - 2228)",
+      "C_eng = 3112*(9.66*T_max + 243.25*M_max + 1.74*T_turbineinlet - 2228)"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "C_eng = 3112*(0.043*T_max + 243.25*M_max + 0.969*T_turbineinlet - 2228)",
+      "C_eng = 3112*(9.66*T_max + 243.25*M_max + 1.74*T_turbineinlet - 2228)"
+    ],
+    "notes": "原始公式残缺：缺少左侧变量'C_eng = '；依据md_context中'Engine production cost = C_eng = 3112[0.043T_max + ...' 补全左侧；拆分为fps/mks两条公式；去除单位与\\mathrm。"
+  },
+  {
+    "idx": 491,
+    "original": "\\begin{array}{rl} & {\\mathrm{RDT\\ & E + flyaway} = H_{E}R_{E} + H_{T}R_{T} + H_{M}R_{M} + H_{Q}R_{Q}}\\\\ & {\\qquad +C_{D} + C_{F} + C_{M} + C_{\\mathrm{eng}}N_{\\mathrm{eng}}}\\\\ & {\\qquad +C_{\\mathrm{avionics}}} \\end{array} \\tag{18.9}",
+    "fixed": [
+      "RDT_E_flyaway = H_E*R_E + H_T*R_T + H_M*R_M + H_Q*R_Q + C_D + C_F + C_M + C_eng*N_eng + C_avionics"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式（虽分三行），为完整等式；去除\\mathrm和\\tag，合并为单行；上下文完整，无残缺。"
+  },
+  {
+    "idx": 492,
+    "original": "\\begin{array}{rl}\\mathrm{tw-}\\mathrm{man~crew~cost} = 70.4\\left(V_c\\frac{W_0}{10^5}\\right)^{0.3} + 168.8 & \\{\\mathrm{fps}\\} \\\\ = 74.5\\left(V_c\\frac{W_0}{10^5}\\right)^{0.3} + 168.8 & \\{\\mathrm{mks}\\} \\\\ \\mathrm{Three-}\\mathrm{man~crew~cost} = 94.5\\left(V_c\\frac{W_0}{10^5}\\right)^{0.3} + 237.2 & \\{\\mathrm{fps}\\} \\\\ = 100\\left(V_c\\frac{W_0}{10^5}\\right)^{0.3} + 237.2 & \\{\\mathrm{mks}\\} \\end{array} \\tag{18.11}",
+    "fixed": [
+      "tw-man_crew_cost = 70.4*(V_c*(W_0/10^5))^0.3 + 168.8",
+      "tw-man_crew_cost = 74.5*(V_c*(W_0/10^5))^0.3 + 168.8",
+      "Three-man_crew_cost = 94.5*(V_c*(W_0/10^5))^0.3 + 237.2",
+      "Three-man_crew_cost = 100*(V_c*(W_0/10^5))^0.3 + 237.2"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为四条并列公式（两种crew类型 × fps/mks）；去除\\{\\mathrm{fps}\\}等单位和\\mathrm连字符干扰；上下文完整，无残缺。"
+  },
+  {
+    "idx": 493,
+    "original": "\\frac{\\mathrm{material~cost}}{\\mathrm{FH}} = 3.3\\left(\\frac{C_a}{10^6}\\right) + 14.2 + \\left[58\\left(\\frac{C_e}{10^6}\\right) - 26.1\\right]N_e \\tag{18.12}",
+    "fixed": [
+      "material_cost / FH = 3.3*(C_a / 10^6) + 14.2 + (58*(C_e / 10^6) - 26.1)*N_e"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式；去除\\mathrm，标准化分式与括号；上下文完整，无残缺。"
+  },
+  {
+    "idx": 494,
+    "original": "\\frac{\\mathrm{material~cost}}{\\mathrm{cycle}} = 4.0\\left(\\frac{C_a}{10^6}\\right) + 9.3 + \\left[7.5\\left(\\frac{C_e}{10^6}\\right) + 5.6\\right]N_e \\tag{18.13}",
+    "fixed": [
+      "material_cost / cycle = 4.0*(C_a / 10^6) + 9.3 + (7.5*(C_e / 10^6) + 5.6)*N_e"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "单条公式；去除\\mathrm，标准化表达式；上下文完整，无残缺。"
+  },
+  {
+    "idx": 495,
+    "original": "\\begin{array}{l}{V_n = V_0(1 + r)^n}\\\\ {V_0 = V_{\\mathrm{np}} = \\frac{V_n}{(1 + r)^n}} \\end{array} \\tag{18.15}",
+    "fixed": [
+      "V_n = V_0*(1 + r)^n",
+      "V_0 = V_np = V_n / (1 + r)^n"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分为两条并列公式；去除\\mathrm和\\tag；上下文完整，无残缺。"
+  },
+  {
+    "idx": 496,
+    "original": "\\begin{array}{c}{\\Sigma F_x = T\\cos (\\alpha +\\phi_T) - D - W\\sin \\gamma}\\\\ {\\Sigma F_z = T\\sin (\\alpha +\\phi_T) + L - W\\cos \\gamma}\\\\ {\\dot{W} =

@@ -4,7 +4,9 @@ import os
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
+from pathlib import Path
+import hashlib
 
 import yaml
 import sympy as sp
@@ -24,9 +26,14 @@ except Exception:
 # =========================
 # Global settings
 # =========================
-KB_ROOT = r"C:\Project\aircraft_kb\data"
+KB_ROOT = r"/data/se42/extraction_yjx/data"
 TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
 _RESERVED_SYMBOL_MAP = {"lambda": "lambda_"}
+
+_QUANTITIES_DIR = os.path.join(KB_ROOT, "quantities")
+_FORMULAS_DIR = os.path.join(KB_ROOT, "formulas")
+_RAW_DIR = os.path.join(KB_ROOT, "raw")
+_MD_DIR = os.path.join(KB_ROOT, "md")
 
 
 class LatexDict(dict):
@@ -81,11 +88,111 @@ class FormulaSpec:
     id: str
     expr: str  # e.g. "L = q * S * CL"
     name_zh: str
+    category: str
+    extractid: str
+    source: str = ""  # expert|thesis|llm (llm is filled at response time)
 
 
 # =========================
 # IO: load YAML
 # =========================
+def _iter_yaml_files(path_or_dir: str) -> List[Path]:
+    p = Path(path_or_dir)
+    if p.is_file():
+        return [p]
+    if not p.exists() or not p.is_dir():
+        return []
+    # Recursively discover YAML files (support nested folders like expert/, thesis/)
+    return sorted([f for f in p.rglob("*.yaml") if f.is_file()])
+
+
+def _infer_base_from_filename(path: Path, *, suffix: str) -> str:
+    stem = path.stem
+    if stem.endswith(suffix):
+        base = stem[: -len(suffix)]
+        return base or stem
+    return stem
+
+
+def _infer_source_from_yaml_path(yaml_path: Path, *, formulas_root: Path) -> str:
+    """Infer formula source label from YAML file path.
+
+    Expected directory structure:
+      data/formulas/expert/*.yaml -> expert
+      data/formulas/thesis/*.yaml -> thesis
+
+    If no known bucket is present, default to 'thesis'.
+    """
+    try:
+        rel = yaml_path.resolve().relative_to(formulas_root.resolve())
+        parts = [p.lower() for p in rel.parts]
+    except Exception:
+        parts = [p.lower() for p in yaml_path.parts]
+
+    if "expert" in parts:
+        return "expert"
+    if "thesis" in parts:
+        return "thesis"
+    return "thesis"
+
+
+def load_all_quantities(dir_path: str = _QUANTITIES_DIR) -> Dict[str, QuantitySpec]:
+    """Load and merge quantities from all YAML files under a directory."""
+    qmap: Dict[str, QuantitySpec] = {}
+    for yf in _iter_yaml_files(dir_path):
+        try:
+            obj = yaml.safe_load(open(yf, "r", encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(obj, dict) or "quantities" not in obj:
+            continue
+        for item in obj.get("quantities") or []:
+            if not isinstance(item, dict) or "id" not in item:
+                continue
+            q = QuantitySpec(
+                id=item["id"],
+                symbol=item.get("symbol", item["id"]),
+                symbol_latex=item.get("symbol_latex", item.get("symbol", item["id"])),
+                name_zh=item.get("name_zh", ""),
+                unit=str(item.get("unit", "1")),
+            )
+            qmap[q.id] = q
+    return qmap
+
+
+def load_all_formulas(dir_path: str = _FORMULAS_DIR) -> List[FormulaSpec]:
+    """Load formulas from all YAML files under a directory.
+
+    If a formula entry lacks category/extractid, infer both from filename:
+    - '<base>_formulas.yaml' -> category=<base>, extractid=<base>
+    """
+    out: List[FormulaSpec] = []
+    formulas_root = Path(dir_path) if Path(dir_path).is_dir() else Path(dir_path).parent
+    for yf in _iter_yaml_files(dir_path):
+        inferred_base = _infer_base_from_filename(yf, suffix="_formulas")
+        inferred_source = _infer_source_from_yaml_path(yf, formulas_root=formulas_root)
+        try:
+            obj = yaml.safe_load(open(yf, "r", encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(obj, dict) or "formulas" not in obj:
+            continue
+        for f in obj.get("formulas") or []:
+            if not isinstance(f, dict) or "id" not in f or "expr" not in f:
+                continue
+            out.append(
+                FormulaSpec(
+                    id=f["id"],
+                    expr=f["expr"],
+                    name_zh=f.get("name_zh", ""),
+                    category=f.get("category", "") or inferred_base,
+                    extractid=f.get("extractid", "") or inferred_base,
+                    source=f.get("source", "") or inferred_source,
+                )
+            )
+    return out
+
+
 def load_quantities(path: str) -> Dict[str, QuantitySpec]:
     obj = yaml.safe_load(open(path, "r", encoding="utf-8"))
     qmap: Dict[str, QuantitySpec] = {}
@@ -107,7 +214,10 @@ def load_formulas(path: str) -> List[FormulaSpec]:
         FormulaSpec(
             id=f["id"],
             expr=f["expr"],
-            name_zh=f.get("name_zh", "")
+            name_zh=f.get("name_zh", ""),
+            category=f.get("category", ""),
+            extractid=f.get("extractid", ""),
+            source=f.get("source", ""),
         )
         for f in obj["formulas"]
     ]
@@ -155,14 +265,13 @@ def expr_to_latex_from_quantities(
     """
     Convert expr to LaTeX using quantities.yaml (with symbol_latex).
     """
-    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
-    if not os.path.exists(q_path):
+    if not _iter_yaml_files(_QUANTITIES_DIR):
         return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITIES_NOT_FOUND",
-            "message": f"[quantities not found] {q_path}",
+            "message": f"[quantities not found] {_QUANTITIES_DIR}",
         })
-    quantities = load_quantities(q_path)
+    quantities = load_all_quantities(_QUANTITIES_DIR)
     return _wrap_latex({
         "status": "ok",
         "latex": expr_to_latex(expr=expr, quantities=quantities),
@@ -289,22 +398,119 @@ def _residual(eq: sp.Eq, symtab: Dict[str, sp.Symbol], values: Dict[str, float])
 # =========================
 # Category loader + cache
 # =========================
+def _dir_fingerprint(dir_path: str) -> str:
+    h = hashlib.sha256()
+    for f in _iter_yaml_files(dir_path):
+        try:
+            st = f.stat()
+        except Exception:
+            continue
+        h.update(f.name.encode("utf-8"))
+        h.update(str(getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))).encode("utf-8"))
+        h.update(str(st.st_size).encode("utf-8"))
+    return h.hexdigest()
+
+
+def _dir_fingerprint_ext(dir_path: str, *, patterns: Tuple[str, ...]) -> str:
+    """Fingerprint a directory based on matching files.
+
+    Used to cache LLM results that depend on data/raw PDFs and/or data/md.
+    """
+    p = Path(dir_path)
+    if not p.exists() or not p.is_dir():
+        return ""
+    h = hashlib.sha256()
+    for pat in patterns:
+        for f in sorted([x for x in p.rglob(pat) if x.is_file()]):
+            try:
+                st = f.stat()
+            except Exception:
+                continue
+            h.update(str(f.relative_to(p)).encode("utf-8", errors="ignore"))
+            h.update(str(getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))).encode("utf-8"))
+            h.update(str(st.st_size).encode("utf-8"))
+    return h.hexdigest()
+
+
+@lru_cache(maxsize=128)
+def _llm_fill_missing_quantities_cached(
+    category: str,
+    extractid: str,
+    missing_qids: Tuple[str, ...],
+    formulas_fp: str,
+    raw_fp: str,
+    md_fp: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Call LLM once per (category, extractid, missing_qids, dir fingerprints)."""
+    _ = formulas_fp, raw_fp, md_fp
+
+    # Lazy import to avoid adding heavy dependencies to engine import time.
+    from llm_fill_missing_quantities import generate_missing_quantity_formulas
+
+    formulas_all = load_all_formulas(_FORMULAS_DIR)
+
+    # 首选 category + extractid 精确匹配；如果数量太少，扩展到同类目全部公式，增加 LLM 可用的 id 与示例覆盖度。
+    formulas = [f for f in formulas_all if f.category == category and f.extractid == extractid]
+    if len(formulas) < 3:
+        formulas = [f for f in formulas_all if f.category == category]
+
+    allowed_formula_ids = [f.id for f in formulas if isinstance(f.id, str) and f.id]
+    # 如果仍然过少，继续用全局去重后的 category 公式 id 以保障 3~5 条生成空间。
+    if len(allowed_formula_ids) < 5:
+        seen_ids = set(allowed_formula_ids)
+        for f in formulas_all:
+            if f.category == category and isinstance(f.id, str) and f.id and f.id not in seen_ids:
+                allowed_formula_ids.append(f.id)
+                seen_ids.add(f.id)
+                if len(allowed_formula_ids) >= 8:  # 简单上限，避免过长
+                    break
+
+    examples = [
+        {
+            "formula_id": f.id,
+            "formula_name_zh": f.name_zh,
+            "expr": f.expr,
+            "source": f.source,
+        }
+        for f in formulas[:20]
+    ]
+
+    return generate_missing_quantity_formulas(
+        category=category,
+        extractid=extractid,
+        missing_quantity_ids=list(missing_qids),
+        existing_formula_examples=examples,
+        raw_dir=_RAW_DIR,
+        md_dir=_MD_DIR,
+        allowed_formula_ids=allowed_formula_ids,
+    )
+
+
 @lru_cache(maxsize=32)
-def _load_category_context(category: str) -> Tuple[Dict[str, QuantitySpec], Dict[str, sp.Eq], Dict[str, sp.Symbol]]:
+def _load_category_context_cached(
+    category: str,
+    quantities_fp: str,
+    formulas_fp: str,
+) -> Tuple[Dict[str, QuantitySpec], Dict[str, sp.Eq], Dict[str, sp.Symbol]]:
     """
     Load and parse quantities + formulas for a category, cached.
     Returns: (quantities_dict, eqs_dict, symtab)
     """
-    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
-    f_path = os.path.join(KB_ROOT, "formulas", category, "fomulas.yaml")  # keep your current spelling
+    _ = quantities_fp, formulas_fp
+    if not _iter_yaml_files(_QUANTITIES_DIR):
+        raise FileNotFoundError(f"[quantities not found] {_QUANTITIES_DIR}")
+    if not _iter_yaml_files(_FORMULAS_DIR):
+        raise FileNotFoundError(f"[formulas not found] {_FORMULAS_DIR}")
 
-    if not os.path.exists(q_path):
-        raise FileNotFoundError(f"[quantities not found] {q_path}")
-    if not os.path.exists(f_path):
-        raise FileNotFoundError(f"[formulas not found] {f_path}")
-
-    quantities = load_quantities(q_path)
-    formulas = load_formulas(f_path)
+    quantities = load_all_quantities(_QUANTITIES_DIR)
+    formulas_all = load_all_formulas(_FORMULAS_DIR)
+    formulas = [f for f in formulas_all if f.category == category]
+    if not formulas:
+        available = sorted({f.category for f in formulas_all if f.category})
+        raise KeyError(
+            f"category '{category}' not found in formulas.yaml. "
+            f"Available: {available}"
+        )
 
     symtab = _mk_symbols(list(quantities.keys()))
     eqs = {
@@ -312,11 +518,22 @@ def _load_category_context(category: str) -> Tuple[Dict[str, QuantitySpec], Dict
             "eq": _parse_equation(f.expr, symtab),
             "name_zh": f.name_zh,
             "expr": f.expr,
+            "category": f.category,
+            "extractid": f.extractid,
         }
         for f in formulas
     }
 
     return quantities, eqs, symtab
+
+
+def _load_category_context(category: str) -> Tuple[Dict[str, QuantitySpec], Dict[str, sp.Eq], Dict[str, sp.Symbol]]:
+    """Wrapper to auto-bust cache when YAML files change."""
+    return _load_category_context_cached(
+        category,
+        _dir_fingerprint(_QUANTITIES_DIR),
+        _dir_fingerprint(_FORMULAS_DIR),
+    )
 
 
 # =========================
@@ -364,6 +581,8 @@ def solve_with_units(
         "residual": residual,
         "formula_id": formula_id,
         "formula_name_zh": formula_name_zh,
+        "formula_category": eqs[formula_id]["category"],
+        "formula_extractid": eqs[formula_id]["extractid"],
     }
 
 
@@ -421,6 +640,8 @@ def _forward_chain_all(
                             "formula_name_zh": eqs[fid]["name_zh"],
                             "formula_expr": eqs[fid]["expr"],
                             "formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
+                            "formula_category": eqs[fid]["category"],
+                            "formula_extractid": eqs[fid]["extractid"],
                             "target": target,
                             "value": x,
                             "unit": quantities[target].unit,
@@ -664,6 +885,8 @@ def solve_target_auto(
             "used_formula_name_zh": eqs[fid]["name_zh"],
             "used_formula_expr": eqs[fid]["expr"],
             "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
+            "used_formula_category": eqs[fid]["category"],
+            "used_formula_extractid": eqs[fid]["extractid"],
             "residual": residual,
             "residual_ok": residual_ok,
         })
@@ -695,6 +918,8 @@ def solve_target_auto(
                     "used_formula_name_zh": eqs[fid]["name_zh"],
                     "used_formula_expr": eqs[fid]["expr"],
                     "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
+                    "used_formula_category": eqs[fid]["category"],
+                    "used_formula_extractid": eqs[fid]["extractid"],
                     "residual": residual,
                     "residual_ok": residual_ok,
                 })
@@ -732,180 +957,164 @@ def solve_target_auto(
 def solve_targets_auto(
     *,
     category: str,
+    extractid: Optional[str] = None,
     known_inputs: Dict[str, str],
     targets: List[str],
-    formula_overrides: Dict[str, str] | None = None,
+    formula_overrides: Dict[str, Any] | None = None,
     max_steps: int = 50,
 ) -> Dict[str, Any]:
+    # First, get the formulas structure
+    formulas_result = find_formulas_by_quantities(
+        category=category,
+        extractid=extractid,
+        quantity_ids=targets,
+    )
+    
+    if formulas_result["status"] != "ok":
+        return formulas_result
+    
+    # Now, fill quantity_value where possible
     quantities, eqs, symtab = _load_category_context(category)
-
-    # 初始已知（仅来自输入）
     ureg = _pint_ureg()
-    known_vals_initial = _parse_known_inputs_to_magnitudes(ureg, quantities, known_inputs)
+    known_vals = _parse_known_inputs_to_magnitudes(ureg, quantities, known_inputs)
 
-    # 一次性前向链推导（复用中间量）
-    out = _forward_chain_all(category=category, known_inputs=known_inputs, max_steps=max_steps)
-    known_vals_all = out["known_vals"]
-    path_all = out["path"]
+    # Load all formulas for matching (by expr+source) within this category
+    formulas_all = load_all_formulas(_FORMULAS_DIR)
+    formulas_cat = [f for f in formulas_all if f.category == category]
 
-    def path_until(t: str) -> List[Dict[str, Any]]:
-        """返回推导路径中从开始到首次得到 t 的子路径；如果没得到 t 返回空列表。"""
-        for i, step in enumerate(path_all):
-            if step["target"] == t:
-                return path_all[: i + 1]
-        return []
+    def _norm_expr(s: str) -> str:
+        return re.sub(r"\s+", "", s.replace("^", "**"))
 
-    results: Dict[str, Any] = {}
-
-    for t in targets:
-        # Rule 0
-        if t not in quantities:
-            results[t] = {
-                "status": "error",
-                "error_code": "TARGET_NOT_FOUND",
-                "message": f"target '{t}' not found in quantities.yaml",
-                "details": {"available": sorted(quantities.keys())},
-            }
-            continue
-
-        # Override: enforce formula for this target if specified
-        if formula_overrides and t in formula_overrides:
-            fid = formula_overrides[t]
-            if fid not in eqs:
-                results[t] = {
-                    "status": "error",
-                    "error_code": "FORMULA_ID_NOT_FOUND",
-                    "message": f"Formula '{fid}' not found in category '{category}'",
-                }
+    allowed_sources = {"expert", "thesis", "llm"}
+    
+    # Prepare override values computed from provided expr blocks
+    override_values: Dict[str, Any] = {}
+    override_exprs: Dict[str, str] = {}
+    override_sources: Dict[str, str] = {}
+    override_formula_ids: Dict[str, str] = {}
+    override_formula_names: Dict[str, str] = {}
+    if formula_overrides:
+        for qid, override in formula_overrides.items():
+            expr_str = None
+            source_override = None
+            if isinstance(override, dict):
+                expr_str = override.get("expr")
+                source_override = override.get("source")
+            else:
+                expr_str = str(override)
+            if not expr_str:
                 continue
 
-            eq = eqs[fid]["eq"]
-            vars_in_eq = _symbols_in_equation(eq, symtab)
-            if t not in vars_in_eq:
-                results[t] = {
-                    "status": "error",
-                    "error_code": "FORMULA_CANNOT_SOLVE_TARGET",
-                    "message": f"Formula '{fid}' cannot solve target '{t}'",
-                }
+            # Require valid source
+            if source_override not in allowed_sources:
                 continue
 
-            required = sorted(set(vars_in_eq) - {t})
-            missing = sorted(v for v in required if v not in known_vals_initial)
-            if missing:
-                results[t] = {
-                    "status": "error",
-                    "error_code": "INSUFFICIENT_INPUTS",
-                    "message": f"Formula '{fid}' cannot solve target '{t}' due to missing inputs",
-                    "details": {"missing": missing},
-                }
-                continue
-
-            try:
-                x = solve_one(eq, known_vals_initial, t, symtab)
-            except Exception as exc:
-                results[t] = {
-                    "status": "error",
-                    "error_code": "FORMULA_NO_SOLUTION",
-                    "message": f"Formula '{fid}' failed to solve target '{t}'",
-                    "details": {"error": str(exc)},
-                }
-                continue
-
-            residual = _residual(eq, symtab, {**known_vals_initial, t: x})
-            residual_ok = abs(residual) < 1e-9
-            results[t] = {
-                "status": "ok",
-                "mode": "single-step",
-                "target": t,
-                "value": x,
-                "unit": quantities[t].unit,
-                "used_formula": fid,
-                "used_formula_name_zh": eqs[fid]["name_zh"],
-                "used_formula_expr": eqs[fid]["expr"],
-                "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
-                "residual": residual,
-                "residual_ok": residual_ok,
-            }
-            continue
-
-        # Rule 1：是否存在可解 t 的公式
-        candidates = _candidate_formulas_for_target(eqs, symtab, t)
-        if not candidates:
-            results[t] = {
-                "status": "error",
-                "error_code": "FORMULA_FOR_TARGET_NOT_FOUND",
-                "message": f"No formula can solve target '{t}'",
-            }
-            continue
-
-        # 已知就直接返回（可选：如果你不需要这个分支可以删）
-        if t in known_vals_initial:
-            results[t] = {
-                "status": "ok",
-                "mode": "given",
-                "target": t,
-                "value": known_vals_initial[t],
-                "unit": quantities[t].unit,
-            }
-            continue
-
-        # 先判断：是否能单步（基于 initial known，不用推导中间量）
-        single_ok = None
-        for fid, eq, vars_in_eq in candidates:
-            required = set(vars_in_eq) - {t}
-            if all(v in known_vals_initial for v in required):
-                try:
-                    x = solve_one(eq, known_vals_initial, t, symtab)
-                    residual = _residual(eq, symtab, {**known_vals_initial, t: x})
-                    residual_ok = abs(residual) < 1e-9
-                    single_ok = {
-                        "status": "ok",
-                        "mode": "single-step",
-                        "target": t,
-                        "value": x,
-                        "unit": quantities[t].unit,
-                        "used_formula": fid,
-                        "used_formula_name_zh": eqs[fid]["name_zh"],
-                        "used_formula_expr": eqs[fid]["expr"],
-                        "used_formula_latex": expr_to_latex(expr=eqs[fid]["expr"], quantities=quantities),
-                        "residual": residual,
-                        "residual_ok": residual_ok,
-                    }
+            # Find matching formula in library by expr+source (normalized)
+            match: FormulaSpec | None = None
+            for f in formulas_cat:
+                if f.source not in allowed_sources:
+                    continue
+                if source_override and f.source != source_override:
+                    continue
+                if _norm_expr(f.expr) == _norm_expr(expr_str):
+                    match = f
                     break
-                except Exception:
-                    pass
+            if match is None:
+                continue
 
-        if single_ok is not None:
-            results[t] = single_ok
-            continue
+            expr_to_use = match.expr
+            try:
+                eq = _parse_equation(expr_to_use, symtab)
+                vars_in_eq = _symbols_in_equation(eq, symtab)
+                if qid in vars_in_eq:
+                    required = set(vars_in_eq) - {qid}
+                    if all(v in known_vals for v in required):
+                        value = solve_one(eq, known_vals, qid, symtab)
+                        override_values[qid] = value
+                        override_exprs[qid] = expr_to_use
+                        override_sources[qid] = match.source or source_override
+                        override_formula_ids[qid] = match.id
+                        override_formula_names[qid] = match.name_zh
+                        # 将覆盖求得的值写回 known_vals，便于后续链计算
+                        known_vals[qid] = value
+            except Exception:
+                # Silently ignore bad override exprs
+                pass
 
-        # 再看：多步推导是否已得到 t
-        if t in known_vals_all:
-            results[t] = {
-                "status": "ok",
-                "mode": "multi-step",
-                "target": t,
-                "value": known_vals_all[t],
-                "unit": quantities[t].unit,
-                "path": path_until(t),   # 只返回到 t 为止的路径，避免太长
-            }
-            continue
+    results = formulas_result["results"]
+    
+    for cat, cat_data in results.items():
+        for extid, extid_data in cat_data.items():
+            for qid, formulas_list in extid_data.items():
+                # If override exists, replace the list with a single resolved entry
+                if qid in override_exprs:
+                    expr_override = override_exprs[qid]
+                    source_override = override_sources.get(qid, "")
+                    value_override = override_values.get(qid)
+                    fid_override = override_formula_ids.get(qid, "")
+                    fname_override = override_formula_names.get(qid, "")
 
-        # 多步也失败：反向缺参链（用已推导的 known_vals_all 更准确）
-        missing_chain = _build_missing_chain(t, known_vals_all, quantities, eqs, symtab)
-        results[t] = {
-            "status": "error",
-            "error_code": "INSUFFICIENT_INPUTS",
-            "message": f"Cannot solve target '{t}' due to missing inputs",
-            "missing_chain": missing_chain,
-        }
+                    # Try to find matching entry by expr; else clone first entry
+                    chosen: Dict[str, Any] | None = None
+                    for formula_dict in formulas_list:
+                        if _norm_expr(formula_dict.get("expr", "")) == _norm_expr(expr_override) and formula_dict.get("source") == source_override:
+                            chosen = dict(formula_dict)
+                            break
+                    if chosen is None:
+                        chosen = dict(formulas_list[0]) if formulas_list else {}
+                        chosen.setdefault("formula_id", "")
+                        chosen.setdefault("formula_name_zh", "")
+                        chosen["expr"] = expr_override
+                        chosen["latex"] = expr_to_latex(expr=expr_override, quantities=quantities)
 
-    return _wrap_latex({
-        "status": "ok",
-        "category": category,
-        "targets": targets,
-        "results": results,
-    })
+                    if fid_override:
+                        chosen["formula_id"] = fid_override
+                    if fname_override:
+                        chosen["formula_name_zh"] = fname_override
+
+                    # Fill meta fields
+                    if not chosen.get("quantity_name_zh") and qid in quantities:
+                        chosen["quantity_name_zh"] = quantities[qid].name_zh
+                    chosen["source"] = source_override or chosen.get("source", "")
+
+                    # Fill value if solved
+                    chosen["quantity_value"] = ""
+                    if value_override is not None:
+                        unit = quantities[qid].unit
+                        if unit:
+                            val_with_unit = ureg.Quantity(value_override, unit)
+                            chosen["quantity_value"] = str(val_with_unit)
+                        else:
+                            chosen["quantity_value"] = str(value_override)
+
+                    # Replace list with single chosen entry
+                    extid_data[qid] = [chosen]
+                    continue
+
+                # Otherwise, attempt to compute values based on each formula's expr with available knowns
+                for formula_dict in formulas_list:
+                    expr_str = formula_dict["expr"]
+                    try:
+                        eq = _parse_equation(expr_str, symtab)
+                        vars_in_eq = _symbols_in_equation(eq, symtab)
+                        if qid in vars_in_eq:
+                            required = set(vars_in_eq) - {qid}
+                            if all(v in known_vals for v in required):
+                                try:
+                                    value = solve_one(eq, known_vals, qid, symtab)
+                                    # Convert to string with unit
+                                    unit = quantities[qid].unit
+                                    if unit:
+                                        val_with_unit = ureg.Quantity(value, unit)
+                                        formula_dict["quantity_value"] = str(val_with_unit)
+                                    else:
+                                        formula_dict["quantity_value"] = str(value)
+                                except Exception:
+                                    pass  # Keep empty if cannot solve
+                    except Exception:
+                        pass  # Skip if cannot parse
+    
+    return formulas_result
 
 
 # =========================
@@ -913,30 +1122,35 @@ def solve_targets_auto(
 # =========================
 def find_formulas_by_quantity(
     *,
-    category: str,
-    quantity_id: str,
+    category: str | None = None,
+    extractid: str | None = None,
+    quantity_id: str | None = None,
 ) -> Dict[str, Any]:
     """
     Find formulas in a category that contain the given quantity id.
     """
-    q_path = os.path.join(KB_ROOT, "quantities", "quantities.yaml")
-    f_path = os.path.join(KB_ROOT, "formulas", category, "fomulas.yaml")
+    if not any([category, extractid, quantity_id]):
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "MISSING_FILTER",
+            "message": "At least one of category, extractid, quantity_id must be provided",
+        })
 
-    if not os.path.exists(q_path):
+    if not _iter_yaml_files(_QUANTITIES_DIR):
         return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITIES_NOT_FOUND",
-            "message": f"[quantities not found] {q_path}",
+            "message": f"[quantities not found] {_QUANTITIES_DIR}",
         })
-    if not os.path.exists(f_path):
+    if not _iter_yaml_files(_FORMULAS_DIR):
         return _wrap_latex({
             "status": "error",
             "error_code": "FORMULAS_NOT_FOUND",
-            "message": f"[formulas not found] {f_path}",
+            "message": f"[formulas not found] {_FORMULAS_DIR}",
         })
 
-    quantities = load_quantities(q_path)
-    if quantity_id not in quantities:
+    quantities = load_all_quantities(_QUANTITIES_DIR)
+    if quantity_id is not None and quantity_id not in quantities:
         return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITY_NOT_FOUND",
@@ -944,51 +1158,183 @@ def find_formulas_by_quantity(
             "details": {"available": sorted(quantities.keys())},
         })
 
-    formulas = load_formulas(f_path)
+    formulas_all = load_all_formulas(_FORMULAS_DIR)
+    formulas = formulas_all
+    if category is not None:
+        formulas = [f for f in formulas if f.category == category]
+        if not formulas:
+            return _wrap_latex({
+                "status": "ok",
+                "category": category,
+                "extractid": extractid,
+                "formulas_path": _FORMULAS_DIR,
+                "quantity": quantity_id,
+                "categories": {},
+                "message": f"category '{category}' not found in formulas.yaml",
+            })
+    if extractid is not None:
+        formulas = [f for f in formulas if f.extractid == extractid]
+        if not formulas:
+            return _wrap_latex({
+                "status": "ok",
+                "category": category,
+                "extractid": extractid,
+                "formulas_path": _FORMULAS_DIR,
+                "quantity": quantity_id,
+                "categories": {},
+                "message": f"extractid '{extractid}' not found in formulas.yaml",
+            })
     symtab = _mk_symbols(list(quantities.keys()))
 
-    matches: List[Dict[str, Any]] = []
+    grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
     for f in formulas:
         try:
             eq = _parse_equation(f.expr, symtab)
         except Exception:
             continue
         vars_in_eq = _symbols_in_equation(eq, symtab)
-        if quantity_id in vars_in_eq:
-            matches.append(
-                {
-                    "formula_id": f.id,
-                    "formula_name_zh": f.name_zh,
-                    "expr": f.expr,
-                    "latex": expr_to_latex(expr=f.expr, quantities=quantities),
-                }
-            )
+        if quantity_id is not None and quantity_id not in vars_in_eq:
+            continue
+
+        cat_key = f.category or ""
+        ext_key = f.extractid or ""
+        grouped.setdefault(cat_key, {}).setdefault(ext_key, []).append(
+            {
+                "formula_id": f.id,
+                "formula_name_zh": f.name_zh,
+                "expr": f.expr,
+                "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+            }
+        )
 
     return _wrap_latex({
         "status": "ok",
-        "category": category,
-        "formulas_path": f_path,
+        "filters": {"category": category, "extractid": extractid},
+        "formulas_path": _FORMULAS_DIR,
         "quantity": quantity_id,
-        "formulas": matches,
+        "categories": grouped,
     })
 
 
 def find_formulas_by_quantities(
     *,
     category: str,
+    extractid: Optional[str] = None,
     quantity_ids: List[str],
 ) -> Dict[str, Any]:
     """
-    Find formulas for multiple quantities in a category.
+    Find formulas for multiple quantities in a category with specified extractid.
+    Returns results organized by category -> extractid -> quantity_ids.
     """
-    results: Dict[str, Any] = {}
-    for qid in quantity_ids:
-        out = find_formulas_by_quantity(category=category, quantity_id=qid)
-        results[qid] = out
+    if not _iter_yaml_files(_QUANTITIES_DIR):
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "QUANTITIES_NOT_FOUND",
+            "message": f"[quantities not found] {_QUANTITIES_DIR}",
+        })
+    if not _iter_yaml_files(_FORMULAS_DIR):
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "FORMULAS_NOT_FOUND",
+            "message": f"[formulas not found] {_FORMULAS_DIR}",
+        })
+
+    quantities = load_all_quantities(_QUANTITIES_DIR)
+    existing_qids = [qid for qid in quantity_ids if qid in quantities]
+    missing_qids = [qid for qid in quantity_ids if qid not in quantities]
+
+    if not existing_qids:
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "QUANTITY_NOT_FOUND",
+            "message": "None of the requested quantity_ids were found in quantities.yaml",
+            "details": {"available": sorted(quantities.keys()), "missing": missing_qids},
+        })
+
+    formulas_all = load_all_formulas(_FORMULAS_DIR)
+    formulas = [f for f in formulas_all if f.category == category]
+    if not formulas:
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "CATEGORY_NOT_FOUND",
+            "message": f"category '{category}' not found in formulas.yaml",
+        })
+
+    extractid_matched = True
+    if extractid:
+        formulas_exact = [f for f in formulas if f.extractid == extractid]
+        extractid_matched = bool(formulas_exact)
+        # Always use all formulas to include all possible relevant ones
+        # formulas = formulas_exact if formulas_exact else formulas
+
+    symtab = _mk_symbols(list(quantities.keys()))
+
+    # 构建按 quantity_ids 分类的结果（先填已有 quantity；missing 的后续再补）
+    quantity_results: Dict[str, List[Dict[str, Any]]] = {qid: [] for qid in existing_qids}
+
+    for f in formulas:
+        try:
+            eq = _parse_equation(f.expr, symtab)
+        except Exception:
+            continue
+        vars_in_eq = _symbols_in_equation(eq, symtab)
+        
+        # 检查这个公式包含哪些 quantity_ids
+        for qid in existing_qids:
+            if qid in vars_in_eq:
+                quantity_results[qid].append({
+                    "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
+                    "quantity_value": "",
+                    "formula_id": f.id,
+                    "formula_name_zh": f.name_zh,
+                    "expr": f.expr,
+                    "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+                    "source": f.source or "thesis",
+                })
+
+    # LLM fill: add missing quantity_ids as new keys under results.
+    # Can be disabled via env var for offline use.
+    if missing_qids and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
+        try:
+            llm_blocks = _llm_fill_missing_quantities_cached(
+                category,
+                extractid,
+                tuple(missing_qids),
+                _dir_fingerprint(_FORMULAS_DIR),
+                _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
+                _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
+            )
+            for qid, formulas_list in (llm_blocks or {}).items():
+                if isinstance(formulas_list, list):
+                    quantity_results[qid] = [
+                        {
+                            "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
+                            "quantity_value": "",
+                            **item,
+                        }
+                        for item in formulas_list
+                        if isinstance(item, dict)
+                    ]
+        except Exception:
+            # Keep response stable even if LLM fails.
+            for qid in missing_qids:
+                quantity_results.setdefault(qid, [])
+    else:
+        for qid in missing_qids:
+            quantity_results.setdefault(qid, [])
+
+    # 构建结构：category -> extractid -> quantity_id
+    results = {category: {extractid: quantity_results}}
 
     return _wrap_latex({
         "status": "ok",
-        "category": category,
-        "quantities": quantity_ids,
+        "filters": {
+            "category": category,
+            "extractid": extractid,
+            "extractid_matched": extractid_matched,
+        },
+        "formulas_path": _FORMULAS_DIR,
+        "quantity_ids": existing_qids,
+        "missing_quantity_ids": missing_qids,
         "results": results,
     })

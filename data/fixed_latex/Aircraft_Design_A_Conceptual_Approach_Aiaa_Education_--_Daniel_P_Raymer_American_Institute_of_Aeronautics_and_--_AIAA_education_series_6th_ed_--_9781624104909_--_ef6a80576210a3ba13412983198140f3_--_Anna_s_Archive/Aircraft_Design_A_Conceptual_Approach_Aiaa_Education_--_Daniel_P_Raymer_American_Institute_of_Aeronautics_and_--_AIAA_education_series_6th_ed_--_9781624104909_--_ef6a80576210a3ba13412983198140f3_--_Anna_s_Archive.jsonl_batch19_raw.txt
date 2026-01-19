@@ -1,0 +1,174 @@
+[
+  {
+    "idx": 361,
+    "original": "C_{L_h} = C_{L_{\\mathrm{cal}}} \\Big[(\\alpha + i_w) \\Big(1 - \\frac{\\partial \\epsilon}{\\partial \\alpha}\\Big) + (i_h - i_w) - \\alpha_0 i_h \\Big] \\tag{16.32}",
+    "fixed": [
+      "C_{L_h} = C_{L_{cal}} [(\\alpha + i_w) (1 - \\frac{\\partial \\epsilon}{\\partial \\alpha}) + (i_h - i_w) - \\alpha_0 i_h ]"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 样式修饰，简化空格和括号格式；公式完整，上下文明确给出完整等式。"
+  },
+  {
+    "idx": 362,
+    "original": "C_{L_{\\mathrm{total}}} = C_{L_{\\alpha}}[\\alpha + i_w] + \\eta_h \\frac{S_h}{S_w} C_{L_h} \\tag{16.33}",
+    "fixed": [
+      "C_{L_{total}} = C_{L_{\\alpha}}[\\alpha + i_w] + \\eta_h \\frac{S_h}{S_w} C_{L_h}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 修饰，保留数学符号；公式完整，上下文明确引用该公式。"
+  },
+  {
+    "idx": 363,
+    "original": "C_{D_{i_{\\mathrm{trimmed}}}} = K[C_{L_\\alpha}(\\alpha +i_w)]^2 +\\eta_h\\frac{S_h}{S_w} K_h[C_{L_h}]^2 \\tag{16.34}",
+    "fixed": [
+      "C_{D_{i_{trimmed}}} = K[C_{L_\\alpha}(\\alpha + i_w)]^2 + \\eta_h \\frac{S_h}{S_w} K_h[C_{L_h}]^2"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 修饰，规范空格；公式完整，上下文明确给出完整表达式。"
+  },
+  {
+    "idx": 364,
+    "original": "\\begin{array}{c}{N = N_{\\mathrm{w i n g}} + N_{w\\delta_{a}}\\delta_{a} + N_{\\mathrm{f u s}} + F_{\\nu}(X_{\\mathrm{a c v}} - X_{\\mathrm{c g}})}\\\\ {-T Y_{p} - D Y_{p} - F_{p}(X_{\\mathrm{c g}} - X_{p})}\\\\ {L = L_{\\mathrm{w i n g}} + L_{w\\delta_{a}}\\delta_{a} - F_{\\nu}(Z_{\\nu})} \\end{array} \\tag{16.35}",
+    "fixed": [
+      "N = N_{wing} + N_{w\\delta_a}\\delta_a + N_{fus} + F_{\\nu}(X_{acv} - X_{cg})",
+      "-T Y_p - D Y_p - F_p(X_{cg} - X_p)",
+      "L = L_{wing} + L_{w\\delta_a}\\delta_a - F_{\\nu}(Z_{\\nu})"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分 array 中的三行独立公式；去除 \\mathrm{ } 和多余空格（如 w i n g → wing）；每行均为独立物理量表达式，上下文支持完整。"
+  },
+  {
+    "idx": 365,
+    "original": "F_{\\nu} = q_{\\nu}S_{\\nu}C_{F_{\\beta_{\\nu}}}\\frac{\\partial\\beta_{\\nu}}{\\partial\\beta}\\beta \\tag{16.37}",
+    "fixed": [
+      "F_{\\nu} = q_{\\nu}S_{\\nu}C_{F_{\\beta_{\\nu}}} \\frac{\\partial\\beta_{\\nu}}{\\partial\\beta} \\beta"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "规范空格，去除 \\mathrm{ } 修饰；公式完整，上下文明确说明该公式表达垂直尾侧向升力。"
+  },
+  {
+    "idx": 366,
+    "original": "\\begin{array}{c}{C_n = \\frac{N}{qS_wb} = C_{n_{\\beta_w}}\\beta +C_{n_{\\delta_a}}\\delta a + C_{n_{\\beta_{\\mathrm{us}}}}\\beta +C_{n_{\\beta_\\nu}}\\beta}\\\\ {-\\frac{T\\overline{Y_p}}{qS_w} -\\frac{D\\overline{Y_p}}{qS_w} -\\frac{F_p}{qS_w} (\\overline{X}_{\\mathrm{cg}} - \\overline{X}_p)} \\end{array} \\tag{16.38}",
+    "fixed": [
+      "C_n = \\frac{N}{qS_w b} = C_{n_{\\beta_w}}\\beta + C_{n_{\\delta_a}}\\delta a + C_{n_{\\beta_{us}}}\\beta + C_{n_{\\beta_\\nu}}\\beta",
+      "-\\frac{T\\overline{Y_p}}{qS_w} - \\frac{D\\overline{Y_p}}{qS_w} - \\frac{F_p}{qS_w} (\\overline{X}_{cg} - \\overline{X}_p)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分 array 两行；去除 \\mathrm{ } 修饰（如 cg → cg）；上下文明确为 yaw 方程，两行均为完整表达式。"
+  },
+  {
+    "idx": 367,
+    "original": "C_{n_{\\beta_{\\nu}}} = C_{F_{\\beta_{\\nu}}}\\frac{\\partial\\beta_{\\nu}}{\\partial\\beta}\\eta_{\\nu}\\frac{S_{\\nu}}{S_{w}} (\\overline{X}_{\\mathrm{acv}} - \\overline{X}_{\\mathrm{cg}}) \\tag{16.39}",
+    "fixed": [
+      "C_{n_{\\beta_{\\nu}}} = C_{F_{\\beta_{\\nu}}} \\frac{\\partial\\beta_{\\nu}}{\\partial\\beta} \\eta_{\\nu} \\frac{S_{\\nu}}{S_{w}} (\\overline{X}_{acv} - \\overline{X}_{cg})"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 修饰，规范空格；公式完整，上下文明确为推导 C_nβν 的表达式。"
+  },
+  {
+    "idx": 368,
+    "original": "C_{\\ell} = \\frac{L}{qS_{w}b} = C_{\\ell_{\\beta_{w}}}\\beta +C_{\\ell_{\\delta_{a}}}\\delta_{a} + C_{\\ell_{\\beta_{\\nu}}}\\beta \\tag{16.40}",
+    "fixed": [
+      "C_{\\ell} = \\frac{L}{qS_w b} = C_{\\ell_{\\beta_w}}\\beta + C_{\\ell_{\\delta_a}}\\delta_a + C_{\\ell_{\\beta_{\\nu}}}\\beta"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "规范空格，去除 \\mathrm{ } 修饰；公式完整，上下文明确为 roll 方程。"
+  },
+  {
+    "idx": 369,
+    "original": "C_{\\ell \\beta_{\\nu}} = -C_{F_{\\beta_{\\nu}}}\\frac{\\partial\\beta_{\\nu}}{\\partial\\beta}\\eta_{\\nu}\\frac{S_{\\nu}}{S_{w}}\\overline{Z}_{\\nu} \\tag{16.41}",
+    "fixed": [
+      "C_{\\ell \\beta_{\\nu}} = -C_{F_{\\beta_{\\nu}}} \\frac{\\partial\\beta_{\\nu}}{\\partial\\beta} \\eta_{\\nu} \\frac{S_{\\nu}}{S_{w}} \\overline{Z}_{\\nu}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "规范空格，去除 \\mathrm{ } 修饰；公式完整，上下文明确为 roll 偏导数表达式。"
+  },
+  {
+    "idx": 370,
+    "original": "\\begin{array}{l}{C_{n_{\\beta}} = C_{n_{\\beta_{w}}} + C_{n_{\\beta_{\\mathrm{fus}}} + } + C_{n_{\\beta_{\\nu}}} - \\frac{F_{p\\beta}}{qS_{w}}\\frac{\\partial\\beta_{p}}{\\partial\\beta} (\\bar{X}_{\\mathrm{cg}} - \\bar{X}_{p})}\\\\ {C_{\\ell_{\\beta}} = C_{\\ell_{\\beta_{w}}} + C_{\\ell_{\\beta_{\\nu}}}} \\end{array} \\tag{16.43}",
+    "fixed": [
+      "C_{n_{\\beta}} = C_{n_{\\beta_w}} + C_{n_{\\beta_{fus}}} + C_{n_{\\beta_{\\nu}}} - \\frac{F_{p\\beta}}{qS_w} \\frac{\\partial\\beta_p}{\\partial\\beta} (\\bar{X}_{cg} - \\bar{X}_p)",
+      "C_{\\ell_{\\beta}} = C_{\\ell_{\\beta_w}} + C_{\\ell_{\\beta_{\\nu}}}"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "C_{n_{\\beta}} = C_{n_{\\beta_w}} + C_{n_{\\beta_{fus}}} + C_{n_{\\beta_{\\nu}}} - \\frac{F_{p\\beta}}{qS_w} \\frac{\\partial\\beta_p}{\\partial\\beta} (\\bar{X}_{cg} - \\bar{X}_p)",
+      "C_{\\ell_{\\beta}} = C_{\\ell_{\\beta_w}} + C_{\\ell_{\\beta_{\\nu}}}"
+    ],
+    "notes": "拆分 array 两行；修复公式中错误 'C_{n_{\\beta_{\\mathrm{fus}}} + }' → 'C_{n_{\\beta_{fus}}}'（上下文提及 fuselage 贡献，应为加号后接项，但原文为笔误，补全依据为上下文 'fuselage contributions' 与公式结构）；两行均完整，补全仅修正笔误。"
+  },
+  {
+    "idx": 371,
+    "original": "\\begin{array}{l}{C_{n\\beta_w} = C_L^2\\Bigg\\{\\frac{1}{4\\pi A} -\\left[\\frac{\\tan\\Lambda}{\\pi A(A + 4\\cos\\Lambda)}\\right]}\\\\ {\\qquad \\times \\left[\\cos \\Lambda -\\frac{A}{2} -\\frac{A^2}{8\\cos\\Lambda} +\\frac{6(\\overline{X}_{\\mathrm{acw}} - \\overline{X}_{\\mathrm{cg}})\\sin\\Lambda}{A}\\right]\\Bigg\\}} \\end{array} \\tag{16.44}",
+    "fixed": [
+      "C_{n\\beta_w} = C_L^2 \\left\\{ \\frac{1}{4\\pi A} - \\left[ \\frac{\\tan\\Lambda}{\\pi A(A + 4\\cos\\Lambda)} \\right] \\times \\left[ \\cos \\Lambda - \\frac{A}{2} - \\frac{A^2}{8\\cos\\Lambda} + \\frac{6(\\overline{X}_{acw} - \\overline{X}_{cg})\\sin\\Lambda}{A} \\right] \\right\\}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "修复 array 结构为单行公式；去除 \\mathrm{ } 修饰；上下文明确引用该公式为经验表达式，结构完整。"
+  },
+  {
+    "idx": 372,
+    "original": "(C_{\\ell_{\\beta}})_{\\Gamma} = -\\frac{C_{L_{\\alpha}}\\Gamma}{4}\\left[\\frac{2(1 + 2\\lambda)}{3(1 + \\lambda)}\\right] \\tag{16.45}",
+    "fixed": [
+      "(C_{\\ell_{\\beta}})_{\\Gamma} = -\\frac{C_{L_{\\alpha}}\\Gamma}{4} \\left[ \\frac{2(1 + 2\\lambda)}{3(1 + \\lambda)} \\right]"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "规范空格；公式完整，上下文明确为机翼后掠对滚转导数的影响。"
+  },
+  {
+    "idx": 373,
+    "original": "C_{\\ell_{\\beta_{\\mathrm{wf}}}} = -1.2\\frac{\\sqrt{A}Z_{\\mathrm{wf}}(D_f + W_f)}{b^2} \\tag{16.46}",
+    "fixed": [
+      "C_{\\ell_{\\beta_{wf}}} = -1.2 \\frac{\\sqrt{A} Z_{wf} (D_f + W_f)}{b^2}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 修饰，规范空格；公式完整，上下文明确为机翼-机身耦合滚转导数。"
+  },
+  {
+    "idx": 374,
+    "original": "C_{\\ell_{\\beta_{\\mathrm{w}}}^{\\mathrm{}}} = \\left(\\frac{C_{\\ell_{\\beta_{\\mathrm{wig}}}}}{{C_{L}^{\\mathrm{}}}}\\right)C_{L} + (C_{\\ell_{\\beta}})_{\\Gamma} + C_{\\ell_{\\beta_{\\mathrm{w}}}}} \\tag{16.47}",
+    "fixed": [
+      "C_{\\ell_{\\beta_w}} = \\left( \\frac{C_{\\ell_{\\beta_{wig}}}}{C_L} \\right) C_L + (C_{\\ell_{\\beta}})_{\\Gamma} + C_{\\ell_{\\beta_w}}"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "C_{\\ell_{\\beta_w}} = \\left( \\frac{C_{\\ell_{\\beta_{wig}}}}{C_L} \\right) C_L + (C_{\\ell_{\\beta}})_{\\Gamma} + C_{\\ell_{\\beta_w}}"
+    ],
+    "notes": "修复公式中冗余上标 \\mathrm{} 和多余右括号 '}}'；上下文显示该公式为总机翼侧滑滚转导数，由三部分组成，原始公式结构错误，补全依据为上下文逻辑与公式意图。"
+  },
+  {
+    "idx": 375,
+    "original": "C_{\\ell_{\\delta_{a}}} = \\frac{2\\Sigma K_{f}\\left(\\frac{\\partial C_{L}}{\\partial\\delta_{f}}\\right)^{\\prime}Y_{i}S_{i}\\cos\\Lambda_{\\mathrm{H.L.}}}{S_{w}b} \\tag{16.48}",
+    "fixed": [
+      "C_{\\ell_{\\delta_a}} = \\frac{2 \\Sigma K_f \\left( \\frac{\\partial C_L}{\\partial\\delta_f} \\right)' Y_i S_i \\cos\\Lambda_{HL}}{S_w b}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除 \\mathrm{ } 修饰（H.L. → HL），规范空格；公式完整，上下文明确为副翼滚转控制力矩的条带法表达式。"
+  },
+  {
+    "idx": 376,
+    "original": "C_{n_{\\beta_{\\mathrm{fus}}} = -1.3}\\frac{\\mathrm{volume}}{S_w b}\\left(\\frac{D_f}{W_f}\\right) \\tag{16.50}",
+    "fixed": [
+      "C_{n_{\\beta_{fus}}} = -1.3 \\frac{volume}{S_w b} \\left( \\frac{D_f}{W_f} \\right)"
+    ],
+    "is_incomplete": true,
+    "completed": [
+      "C_{n_{\\beta_{fus}}} = -1.3 \\frac{volume}{S_w b} \\left( \\frac{D_f}{W_f} \\right)"
+    ],
+    "notes": "修复公式结构错误：原始为 'C_{n_{\\beta_{\\mathrm{fus}}} = -1.3}'，应为 'C_{n_{\\beta_{fus}}} = -1.3 ...'；上下文明确给出该公式形式，补全依据为上下文 'Eq. (16.50)' 的描述。"
+  },
+  {
+    "idx": 

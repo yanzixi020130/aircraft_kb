@@ -1,0 +1,172 @@
+[
+  {
+    "idx": 321,
+    "original": "\\begin{array}{l}W_{\\mathrm{vertical~tail}} = 0.073\\bigg(1 + 0.2\\frac{H_t}{H_\\nu}\\bigg)(N_zW_{\\mathrm{dg}})^{0.376}q^{0.122}S_{\\nu t}^{0.873}\\\\ \\qquad \\times \\left(\\frac{100t / c}{\\cos\\Lambda_{\\nu t}}\\right)^{-0.49}\\bigg(\\frac{A}{\\cos^2\\Lambda_{\\nu t}}\\bigg)^{0.357}\\lambda_{\\nu t}^{0.039} \\end{array} \\tag{15.48}",
+    "fixed": [
+      "W_{\\mathrm{vertical~tail}} = 0.073\\left(1 + 0.2\\frac{H_t}{H_\\nu}\\right)(N_zW_{\\mathrm{dg}})^{0.376}q^{0.122}S_{\\nu t}^{0.873} \\left(\\frac{100t / c}{\\cos\\Lambda_{\\nu t}}\\right)^{-0.49}\\left(\\frac{A}{\\cos^2\\Lambda_{\\nu t}}\\right)^{0.357}\\lambda_{\\nu t}^{0.039}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了多余空格和 \\bigg/\\bigg 为标准括号，保留完整单公式；上下文未显示公式残缺，故无需补全。"
+  },
+  {
+    "idx": 322,
+    "original": "\\begin{array}{l}W_{\\mathrm{fuselage}} = 0.052S_f^{1.086}(N_zW_{\\mathrm{dg}})^{0.177}L_t^{-0.051}\\\\ \\qquad \\times (L / D)^{-0.072}q^{0.241} + W_{\\mathrm{press}} \\end{array} \\tag{15.49}",
+    "fixed": [
+      "W_{\\mathrm{fuselage}} = 0.052S_f^{1.086}(N_zW_{\\mathrm{dg}})^{0.177}L_t^{-0.051} (L / D)^{-0.072}q^{0.241} + W_{\\mathrm{press}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了多余空格和 \\bigg，合并为单公式；上下文完整，无残缺。"
+  },
+  {
+    "idx": 323,
+    "original": "W_{\\mathrm{main~landing~gear}} = 0.095(N_lW_l)^{0.768}(L_m / 12)^{0.409} \\tag{15.50}",
+    "fixed": [
+      "W_{\\mathrm{main~landing~gear}} = 0.095(N_lW_l)^{0.768}(L_m / 12)^{0.409}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了 \\tag{15.50}，公式完整，上下文明确，无残缺。"
+  },
+  {
+    "idx": 324,
+    "original": "W_{\\mathrm{nose~landing~gear}} = 0.125(N_lW_l)^{0.566}(L_n / 12)^{0.845}",
+    "fixed": [
+      "W_{\\mathrm{nose~landing~gear}} = 0.125(N_lW_l)^{0.566}(L_n / 12)^{0.845}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，上下文显示其为独立公式，无残缺。"
+  },
+  {
+    "idx": 325,
+    "original": "\\begin{array}{r l} & {W_{\\mathrm{installed~engine~(total)}} = 2.575W_{\\mathrm{en}}^{0.922}N_{\\mathrm{en}}}\\\\ & {\\qquad \\mathrm{(includes~propeller~and~engine~mounts)}} \\end{array} \\tag{15.52}",
+    "fixed": [
+      "W_{\\mathrm{installed~engine~(total)}} = 2.575W_{\\mathrm{en}}^{0.922}N_{\\mathrm{en}}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了说明性文本行，仅保留等式主体；上下文完整，无残缺。"
+  },
+  {
+    "idx": 326,
+    "original": "W_{\\mathrm{fuel~system}} = 2.49V_t^{0.726}\\left(\\frac{1}{1 + V_i / V_t}\\right)^{0.363}N_t^{0.242}N_{\\mathrm{en}}^{0.157} \\tag{15.53}",
+    "fixed": [
+      "W_{\\mathrm{fuel~system}} = 2.49V_t^{0.726}\\left(\\frac{1}{1 + V_i / V_t}\\right)^{0.363}N_t^{0.242}N_{\\mathrm{en}}^{0.157}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "去除了 \\tag，公式完整，上下文明确。"
+  },
+  {
+    "idx": 327,
+    "original": "W_{\\mathrm{flight~controls}} = 0.053L^{1.536}B_w^{0.371}(N_zW_{\\mathrm{dg}}\\times 10^{-4})^{0.80} \\tag{15.54}",
+    "fixed": [
+      "W_{\\mathrm{flight~controls}} = 0.053L^{1.536}B_w^{0.371}(N_zW_{\\mathrm{dg}} \\times 10^{-4})^{0.80}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "标准化了 \\times 前后空格，公式完整，上下文无缺失。"
+  },
+  {
+    "idx": 328,
+    "original": "W_{\\mathrm{hydraulics}} = K_hW_{\\mathrm{dg}}^{0.8}M^{0.5} \\tag{15.55}",
+    "fixed": [
+      "W_{\\mathrm{hydraulics}} = K_h W_{\\mathrm{dg}}^{0.8} M^{0.5}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "添加了乘号间空格以规范格式，公式完整，上下文完整。"
+  },
+  {
+    "idx": 329,
+    "original": "W_{\\mathrm{electrical}} = 12.57(W_{\\mathrm{fuel~system}} + W_{\\mathrm{avionics}})^{0.51} \\tag{15.56}",
+    "fixed": [
+      "W_{\\mathrm{electrical}} = 12.57(W_{\\mathrm{fuel~system}} + W_{\\mathrm{avionics}})^{0.51}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，上下文显示其依赖前项，但自身无残缺。"
+  },
+  {
+    "idx": 330,
+    "original": "W_{\\mathrm{avionics}} = 2.117W_{\\mathrm{uav}}^{0.933} \\tag{15.57}",
+    "fixed": [
+      "W_{\\mathrm{avionics}} = 2.117W_{\\mathrm{uav}}^{0.933}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，上下文完整，无残缺。"
+  },
+  {
+    "idx": 331,
+    "original": "W_{\\mathrm{air~conditioning~and~anti - ice}} = 0.265W_{\\mathrm{dg}}^{0.52}N_p^{0.68}W_{\\mathrm{avionics}}^{0.17}M^{0.08} \\tag{15.58}",
+    "fixed": [
+      "W_{\\mathrm{air~conditioning~and~anti-ice}} = 0.265W_{\\mathrm{dg}}^{0.52}N_p^{0.68}W_{\\mathrm{avionics}}^{0.17}M^{0.08}"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "修正了 'anti - ice' 为 'anti-ice'（去多余空格），公式完整，上下文完整。"
+  },
+  {
+    "idx": 332,
+    "original": "W_{\\mathrm{furnishings}} = 0.0582W_{\\mathrm{dg}} - 65 \\tag{15.59}",
+    "fixed": [
+      "W_{\\mathrm{furnishings}} = 0.0582W_{\\mathrm{dg}} - 65"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "公式完整，上下文完整，无残缺。"
+  },
+  {
+    "idx": 333,
+    "original": "\\begin{array}{r}c_{m} = M / qS\\overline{c}\\\\ c_{n} = N / qSb\\\\ c_{\\ell} = L / qSb \\end{array} \\tag{16.3}",
+    "fixed": [
+      "c_{m} = M / qS\\overline{c}",
+      "c_{n} = N / qSb",
+      "c_{\\ell} = L / qSb"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列公式为三条独立公式；去除了 \\tag，上下文说明三者为独立定义，无残缺。"
+  },
+  {
+    "idx": 334,
+    "original": "\\begin{array}{l}{c_m = M / qS\\overline{c}}\\\\ {}\\\\ {c_n = N / qSb}\\\\ {}\\\\ {c_\\ell = L / qSb} \\end{array} \\tag{16.3}",
+    "fixed": [
+      "c_m = M / qS\\overline{c}",
+      "c_n = N / qSb",
+      "c_\\ell = L / qSb"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分并列公式，去除空行占位符 {}，与 idx=333 内容一致，上下文完整，无残缺。"
+  },
+  {
+    "idx": 335,
+    "original": "\\begin{array}{r}M_{\\mathrm{cg}} = L(X_{\\mathrm{cg}} - X_{\\mathrm{acw}}) + M_w + M_{w\\delta f}\\delta_f + M_{\\mathrm{fus}}\\\\ -L_h(X_{\\mathrm{ach}} - X_{\\mathrm{cg}}) - Tz_t + F_p(X_{\\mathrm{cg}} - X_p) \\end{array} \\tag{16.4}",
+    "fixed": [
+      "M_{\\mathrm{cg}} = L(X_{\\mathrm{cg}} - X_{\\mathrm{acw}}) + M_w + M_{w\\delta f}\\delta_f + M_{\\mathrm{fus}} - L_h(X_{\\mathrm{ach}} - X_{\\mathrm{cg}}) - Tz_t + F_p(X_{\\mathrm{cg}} - X_p)"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "合并为单公式（原为换行书写），去除了 \\tag，上下文完整，无残缺。"
+  },
+  {
+    "idx": 336,
+    "original": "\\begin{array}{r l} & {C_{m_{\\mathrm{cg}}} = C_{L}\\bigg(\\frac{X_{\\mathrm{cg}} - X_{\\mathrm{acw}}}{c}\\bigg) + C_{m_{w}} + C_{m_{w\\delta f}}\\delta_{f} + C_{m_{\\mathrm{fus}}}}\\\\ & {\\qquad -\\frac{q_{h}S_{h}}{q S_{w}} C_{L_{h}}\\bigg(\\frac{X_{\\mathrm{ach}} - X_{\\mathrm{cg}}}{c}\\bigg) - \\frac{T z_{t}}{q S_{w}c} +\\frac{F_{p}(X_{\\mathrm{cg}} - X_{p})}{q S_{w}c}}\\\\ & {\\qquad \\eta_{h} = q_{h} / q}\\\\ & {C_{m_{\\mathrm{cg}}} = C_{L}(X_{\\mathrm{cg}} - X_{\\mathrm{acw}}) + C_{m_{w}} + C_{m_{w\\delta f}}\\delta_{f} + C_{m_{\\mathrm{fus}}}}\\\\ & {\\qquad -\\eta_{h}\\frac{S_{h}}{w S} C_{L_{h}}(\\overline{{X}}_{\\mathrm{ach}} - \\overline{{X}}_{\\mathrm{cg}}) - \\frac{T}{q S_{w}}\\overline{{Z}}_{t} + \\frac{F_{p}}{q S_{w}} (\\overline{{X}}_{\\mathrm{cg}} - \\overline{{X}}_{p})} \\end{array} \\tag{16.7}",
+    "fixed": [
+      "C_{m_{\\mathrm{cg}}} = C_{L}\\left(\\frac{X_{\\mathrm{cg}} - X_{\\mathrm{acw}}}{c}\\right) + C_{m_{w}} + C_{m_{w\\delta f}}\\delta_{f} + C_{m_{\\mathrm{fus}}} - \\frac{q_{h}S_{h}}{q S_{w}} C_{L_{h}}\\left(\\frac{X_{\\mathrm{ach}} - X_{\\mathrm{cg}}}{c}\\right) - \\frac{T z_{t}}{q S_{w}c} + \\frac{F_{p}(X_{\\mathrm{cg}} - X_{p})}{q S_{w}c}",
+      "C_{m_{\\mathrm{cg}}} = C_{L}(X_{\\mathrm{cg}} - X_{\\mathrm{acw}}) + C_{m_{w}} + C_{m_{w\\delta f}}\\delta_{f} + C_{m_{\\mathrm{fus}}} - \\eta_{h}\\frac{S_{h}}{w S} C_{L_{h}}(\\overline{X}_{\\mathrm{ach}} - \\overline{X}_{\\mathrm{cg}}) - \\frac{T}{q S_{w}}\\overline{Z}_{t} + \\frac{F_{p}}{q S_{w}} (\\overline{X}_{\\mathrm{cg}} - \\overline{X}_{p})",
+      "\\eta_{h} = q_{h} / q"
+    ],
+    "is_incomplete": false,
+    "completed": [],
+    "notes": "拆分三条独立公式：两个等式和一个定义；去除了多余空格和 \\bigg，上下文说明为简化形式，无残缺。"
+  },
+  {
+    "idx": 337,
+    "original": "\\begin{array}{r l} & {C_{m_{\\alpha}} = C_{L_{\\alpha}}(\\overline{{X}}_{\\mathrm{cg}} - \\overline{{X}}_{\\mathrm{acw}}) + C_{m_{\\alpha_{\\mathrm{fus}}} - \\eta_{h}}\\frac{S_{h}}{S_{w}} C_{L_{\\alpha_{h}}}\\frac{\\partial\\alpha_{h}}{\\partial\\alpha} (\\overline{{X}}_{\\mathrm{ach}} - \\overline{{X}}_{\\mathrm{cg}})}\\\\ & {\\qquad +\\frac{F_{p_{\\alpha}}}{q S_{w}}\\frac{\\partial\\alpha_{p}}{\\partial\\alpha} (\\overline{{X}}_{\\mathrm{cg}} - \\overline{{X}}_{p})} \\end{array} \\tag{16.8}",
+    "fixed": [
+      "C_{m_{\\alpha}} = C_{L_{\\alpha}}(\\overline{X}_{\\mathrm{cg}} - \\overline{X}_{\\mathrm{acw}}) + \\left(C_{m_{\\alpha_{\\mathrm{fus}}}} - \\eta_{h}\\frac{S_{h}}{S_{w}} C_{L_{\\alpha_{h}}}\\frac{\\partial\\alpha_{h}}{\\partial\\alpha}\\right)(\\overline{X
