@@ -122,7 +122,7 @@ def api_generate_known_inputs(payload: GenerateKnownInputsRequest) -> Dict[str, 
     输出结构：
     {
         "variables": [
-            {"symbol": "$...$", "name": "...", "value": "...", "unit": "...|null", "context": "...", "source": "expert|thesis|llm"}
+            {"quantity_id": "...", "symbol": "$...$", "name": "...", "value": "...", "unit": "...|null", "context": "...", "source": "expert|thesis|llm"}
         ],
         "status": "ok",
         "category": "expert"
@@ -179,6 +179,7 @@ def api_generate_known_inputs(payload: GenerateKnownInputsRequest) -> Dict[str, 
                 context_text = f"变量：{name_zh}"
 
             variables.append({
+                "quantity_id": rid,
                 "symbol": f"${symbol_latex}$",
                 "name": name_zh,
                 "value": num,

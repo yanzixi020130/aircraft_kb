@@ -26,9 +26,10 @@ PROMPT_TEMPLATE_FIXED = """
 ### 1. formulas.yaml 格式：
 ```yaml
 formulas:
-  - id: F_公式英文描述
-    name_zh: "公式的中文名称"
-    expr: "公式的 SymPy 可识别形式"
+    - id: F_公式英文描述
+        name_zh: "公式的中文名称"
+        expr: "公式的 SymPy 可识别形式"
+        extractid: [阶段1, 阶段2]
 ```
 
 ### 2. quantities.yaml 格式：
@@ -45,6 +46,8 @@ quantities:
 1. expr 必须是合法的 Python 表达式，乘法用 `*`，幂用 `**`，变量名用下划线不含特殊字符
 2. 变量在 quantities.yaml 中去重，单位使用 SI，无量纲用 '1'
 3. 输出格式缩进 2 空格
+4. 提取 `extractid`（列表，可多值）。可选枚举仅限四个：`Flight_Performance_Analysis_Extraction_Parameters`、`plane_design`、`Overall_Parameter_Extraction_Parameters`、`Others`。优先匹配前三类；只有无法归入前三类时才使用 `Others`。
+5. 若同一公式跨阶段适用，可在 `extractid` 列出多个阶段。
 
 ## ✅ 变量校验与清洗规则（必须遵守）
 1. `quantities.yaml` 的 `id` 集合必须与所有 `expr` 中出现的变量集合完全一致；不得新增或遗漏任何变量。
@@ -74,7 +77,8 @@ quantities:
 formulas:
   - id: F_example
     name_zh: "示例公式"
-    expr: "F = m * a"
+        expr: "F = m * a"
+        extractid: [plane_design]
 ```
 
 ### quantities.yaml

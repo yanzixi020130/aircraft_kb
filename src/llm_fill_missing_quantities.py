@@ -118,8 +118,10 @@ _PROMPT_TEMPLATE = """
 2) 该物理量可能对应的公式列表
 
 【任务】
+- 必须覆盖所有 missing_quantity_id，不得遗漏；即使资料不足也要给出该物理量信息并补齐 3~5 条候选公式。
 - 对每个 missing_quantity_id，先给出该物理量的定义（id/symbol/symbol_latex/name_zh/unit），再给出 3~5 条可能的公式（少于 3 条视为无效输出，务必补足）。
 - 公式必须尽量引用资料中出现过的符号/变量，不要凭空臆造；如资料不足，请给出最保守的候选，并在 formula_name_zh 里标注“推断/候选”。
+- 若缺少可靠资料，仍需输出：unit 用保守的 SI/1，公式列表可以复用【允许的 formula_id 列表】按序循环；所有字段不可留空。
 - 输出必须是“合法 JSON 对象”，其中 key 是 missing_quantity_id，value 是一个对象，包含字段 quantity 与 formulas。
 
 【输出 JSON 结构（必须严格遵守）】

@@ -291,3 +291,99 @@ def generate_known_inputs_from_payload(
 
 
 __all__ = ["generate_known_inputs_from_payload"]
+def _split_value_unit(text: str) -> Tuple[str, str | None]:
+    """Split a value string into (value, unit).
+
+    Heuristics:
+    - If there's at least one space, take the last token as unit.
+    - Otherwise, treat as pure numeric and unit=None.
+    """
+    s = str(text).strip()
+    if not s:
+        return "", None
+    parts = s.rsplit(" ", 1)
+    if len(parts) == 2 and parts[1]:
+        return parts[0], parts[1]
+    return s, None
+
+
+def generate_known_inputs_response(
+    payload: Dict,
+    *,
+    category: str | None = None,
+    llm_cfg: LLMConfig | None = None,
+) -> Dict[str, Any]:
+    """API-style response builder that returns variables with quantity_id.
+
+    Input payload example (abridged):
+    {
+      "type": "checkpoint.reply",
+      "params": {
+        "formulaKey": "plane_design",
+        "selectedFormulas": {
+          "q": {"expr": "L = q * Swing * CL", ...},
+          "Wload": {"expr": "Wload = kload * W0", ...}
+        }
+      }
+    }
+
+    Output shape:
+    {
+      "variables": [
+        {"quantity_id": "CL", "symbol": "$C_{L}$", "name": "升力系数", "value": "0.5", "unit": null, "context": "变量：升力系数", "source": "expert"},
+        ...
+      ],
+      "status": "ok",
+      "category": "expert"
+    }
+    """
+
+    # Generate known_inputs first
+    known_inputs = generate_known_inputs_from_payload(payload, category=category, llm_cfg=llm_cfg)
+
+    # Load quantities + aliases to resolve metadata
+    cat = (category or DEFAULT_CATEGORY).strip()
+    quantities, aliases = _load_quantities(cat)
+
+    variables: List[Dict[str, Any]] = []
+    for rid, raw in known_inputs.items():
+        qid = rid
+        # Map alias back to canonical id if needed
+        if qid in aliases:
+            qid = aliases[qid]
+
+        spec = quantities.get(qid, {})
+        name_zh = spec.get("name_zh") or qid
+        # Prefer LaTeX symbol if available; else fallback to id itself
+        symbol_latex = spec.get("symbol_latex") or spec.get("symbol") or qid
+        symbol_out = f"${symbol_latex}$" if not str(symbol_latex).startswith("$") else str(symbol_latex)
+
+        val_str, unit_str = _split_value_unit(raw)
+        # If canonical unit is dimensionless ('1'), suppress unit in output
+        canonical_unit = spec.get("unit", "1")
+        if canonical_unit == "1":
+            unit_str = None
+
+        variables.append(
+            {
+                "quantity_id": qid,
+                "symbol": symbol_out,
+                "name": name_zh,
+                "value": val_str,
+                "unit": unit_str,
+                "context": f"变量：{name_zh}",
+                # Default to category as source; if not found in YAML, mark as llm
+                "source": (spec and cat) or "llm",
+            }
+        )
+
+    return {
+        "variables": variables,
+        "status": "ok",
+        "category": cat,
+    }
+
+__all__ = [
+    "generate_known_inputs_from_payload",
+    "generate_known_inputs_response",
+]

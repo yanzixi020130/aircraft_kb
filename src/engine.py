@@ -24,6 +24,13 @@ except Exception:
 
 
 # =========================
+# Pint UnitRegistry factory (singleton)
+def _pint_ureg():
+    if not _HAS_PINT:
+        raise ImportError("pint is not installed or failed to import.")
+    if not hasattr(_pint_ureg, "_instance"):
+        _pint_ureg._instance = pint.UnitRegistry()
+    return _pint_ureg._instance
 # Global settings
 # =========================
 KB_ROOT = r"/data/se42/extraction_yjx/data"
@@ -89,7 +96,7 @@ class FormulaSpec:
     expr: str  # e.g. "L = q * S * CL"
     name_zh: str
     category: str
-    extractid: str
+    extractid: List[str]
     source: str = ""  # expert|thesis|llm (llm is filled at response time)
 
 
@@ -112,6 +119,18 @@ def _infer_base_from_filename(path: Path, *, suffix: str) -> str:
         base = stem[: -len(suffix)]
         return base or stem
     return stem
+
+
+def _ensure_extractid(value, fallback: str) -> List[str]:
+    """Normalize extractid field (accept legacy extractids) to a non-empty list of strings."""
+    ids: List[str] = []
+    if isinstance(value, str) and value.strip():
+        ids = [value.strip()]
+    elif isinstance(value, list):
+        ids = [str(v).strip() for v in value if str(v).strip()]
+    if not ids and fallback:
+        ids = [fallback]
+    return ids
 
 
 def _infer_source_from_yaml_path(yaml_path: Path, *, formulas_root: Path) -> str:
@@ -180,13 +199,14 @@ def load_all_formulas(dir_path: str = _FORMULAS_DIR) -> List[FormulaSpec]:
         for f in obj.get("formulas") or []:
             if not isinstance(f, dict) or "id" not in f or "expr" not in f:
                 continue
+            extractid = _ensure_extractid(f.get("extractid", f.get("extractids", "")), inferred_base)
             out.append(
                 FormulaSpec(
                     id=f["id"],
                     expr=f["expr"],
                     name_zh=f.get("name_zh", ""),
                     category=f.get("category", "") or inferred_base,
-                    extractid=f.get("extractid", "") or inferred_base,
+                    extractid=extractid,
                     source=f.get("source", "") or inferred_source,
                 )
             )
@@ -216,7 +236,7 @@ def load_formulas(path: str) -> List[FormulaSpec]:
             expr=f["expr"],
             name_zh=f.get("name_zh", ""),
             category=f.get("category", ""),
-            extractid=f.get("extractid", ""),
+            extractid=_ensure_extractid(f.get("extractid", f.get("extractids", "")), f.get("category", "")),
             source=f.get("source", ""),
         )
         for f in obj["formulas"]
@@ -305,21 +325,7 @@ def _symbols_in_equation(eq: sp.Eq, symtab: Dict[str, sp.Symbol]) -> List[str]:
     """
     symset = set(symtab.values())
     sym_to_id = {sym: qid for qid, sym in symtab.items()}
-    ids = []
-    for s in eq.free_symbols:
-        if s in symset:
-            ids.append(sym_to_id[s])
-    # stable order: by name
-    return sorted(set(ids))
-
-
-# =========================
-# Unit system (pint)
-# =========================
-def _pint_ureg() -> "pint.UnitRegistry":
-    if not _HAS_PINT:
-        raise RuntimeError("pint is not installed. Please: pip install pint")
-    return pint.UnitRegistry(autoconvert_offset_to_baseunit=True)
+    return [sym_to_id[s] for s in eq.free_symbols if s in symset]
 
 
 def _parse_known_inputs_to_magnitudes(
@@ -450,7 +456,7 @@ def _llm_fill_missing_quantities_cached(
     formulas_all = load_all_formulas(_FORMULAS_DIR)
 
     # 首选 category + extractid 精确匹配；如果数量太少，扩展到同类目全部公式，增加 LLM 可用的 id 与示例覆盖度。
-    formulas = [f for f in formulas_all if f.category == category and f.extractid == extractid]
+    formulas = [f for f in formulas_all if f.category == category and extractid in f.extractid]
     if len(formulas) < 3:
         formulas = [f for f in formulas_all if f.category == category]
 
@@ -519,7 +525,7 @@ def _load_category_context_cached(
             "name_zh": f.name_zh,
             "expr": f.expr,
             "category": f.category,
-            "extractid": f.extractid,
+            "extractid": list(f.extractid),
         }
         for f in formulas
     }
@@ -986,6 +992,20 @@ def solve_targets_auto(
         return re.sub(r"\s+", "", s.replace("^", "**"))
 
     allowed_sources = {"expert", "thesis", "llm"}
+
+    def _fmt_quantity_value(v: Any) -> str:
+        """Return numeric string without unit."""
+        try:
+            fval = float(v)
+            return f"{fval:.4f}"
+        except Exception:
+            try:
+                if hasattr(v, "magnitude"):
+                    fval = float(v.magnitude)
+                    return f"{fval:.4f}"
+            except Exception:
+                pass
+        return str(v)
     
     # Prepare override values computed from provided expr blocks
     override_values: Dict[str, Any] = {}
@@ -1080,12 +1100,7 @@ def solve_targets_auto(
                     # Fill value if solved
                     chosen["quantity_value"] = ""
                     if value_override is not None:
-                        unit = quantities[qid].unit
-                        if unit:
-                            val_with_unit = ureg.Quantity(value_override, unit)
-                            chosen["quantity_value"] = str(val_with_unit)
-                        else:
-                            chosen["quantity_value"] = str(value_override)
+                        chosen["quantity_value"] = _fmt_quantity_value(value_override)
 
                     # Replace list with single chosen entry
                     extid_data[qid] = [chosen]
@@ -1102,18 +1117,34 @@ def solve_targets_auto(
                             if all(v in known_vals for v in required):
                                 try:
                                     value = solve_one(eq, known_vals, qid, symtab)
-                                    # Convert to string with unit
-                                    unit = quantities[qid].unit
-                                    if unit:
-                                        val_with_unit = ureg.Quantity(value, unit)
-                                        formula_dict["quantity_value"] = str(val_with_unit)
-                                    else:
-                                        formula_dict["quantity_value"] = str(value)
+                                    formula_dict["quantity_value"] = _fmt_quantity_value(value)
                                 except Exception:
                                     pass  # Keep empty if cannot solve
                     except Exception:
                         pass  # Skip if cannot parse
-    
+    # Filter out entries that lack latex; clean empty buckets
+    cats_to_del = []
+    for cat, cat_data in results.items():
+        ext_to_del = []
+        for extid, extid_data in cat_data.items():
+            qids_to_del = []
+            for qid, formulas_list in extid_data.items():
+                filtered = [f for f in formulas_list if f.get("latex")]
+                if filtered:
+                    extid_data[qid] = filtered
+                else:
+                    qids_to_del.append(qid)
+            for qid in qids_to_del:
+                extid_data.pop(qid, None)
+            if not extid_data:
+                ext_to_del.append(extid)
+        for extid in ext_to_del:
+            cat_data.pop(extid, None)
+        if not cat_data:
+            cats_to_del.append(cat)
+    for cat in cats_to_del:
+        results.pop(cat, None)
+
     return formulas_result
 
 
@@ -1173,7 +1204,7 @@ def find_formulas_by_quantity(
                 "message": f"category '{category}' not found in formulas.yaml",
             })
     if extractid is not None:
-        formulas = [f for f in formulas if f.extractid == extractid]
+        formulas = [f for f in formulas if extractid in f.extractid]
         if not formulas:
             return _wrap_latex({
                 "status": "ok",
@@ -1197,7 +1228,7 @@ def find_formulas_by_quantity(
             continue
 
         cat_key = f.category or ""
-        ext_key = f.extractid or ""
+        ext_key = ",".join(f.extractid) if f.extractid else ""
         grouped.setdefault(cat_key, {}).setdefault(ext_key, []).append(
             {
                 "formula_id": f.id,
@@ -1262,10 +1293,9 @@ def find_formulas_by_quantities(
 
     extractid_matched = True
     if extractid:
-        formulas_exact = [f for f in formulas if f.extractid == extractid]
+        formulas_exact = [f for f in formulas if extractid in f.extractid]
         extractid_matched = bool(formulas_exact)
-        # Always use all formulas to include all possible relevant ones
-        # formulas = formulas_exact if formulas_exact else formulas
+        formulas = formulas_exact if formulas_exact else formulas
 
     symtab = _mk_symbols(list(quantities.keys()))
 
@@ -1290,6 +1320,7 @@ def find_formulas_by_quantities(
                     "expr": f.expr,
                     "latex": expr_to_latex(expr=f.expr, quantities=quantities),
                     "source": f.source or "thesis",
+                    "extractid": list(f.extractid),
                 })
 
     # LLM fill: add missing quantity_ids as new keys under results.
@@ -1322,6 +1353,52 @@ def find_formulas_by_quantities(
     else:
         for qid in missing_qids:
             quantity_results.setdefault(qid, [])
+
+    # Deduplicate: for each quantity's formulas, if multiple entries share the same expr,
+    # keep the one with source == "expert"; otherwise keep the first.
+    def _norm_expr_dedup(s: str) -> str:
+        return re.sub(r"\s+", "", str(s).replace("^", "**"))
+
+    for qid, flist in list(quantity_results.items()):
+        if not isinstance(flist, list) or not flist:
+            continue
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        for item in flist:
+            expr_str = item.get("expr", "")
+            key = _norm_expr_dedup(expr_str)
+            grouped.setdefault(key, []).append(item)
+
+        deduped: List[Dict[str, Any]] = []
+        for key, items in grouped.items():
+            # Prefer expert source
+            chosen = None
+            for it in items:
+                if str(it.get("source", "")).lower() == "expert":
+                    chosen = it
+                    break
+            if chosen is None:
+                chosen = items[0]
+            deduped.append(chosen)
+
+        # Second pass: deduplicate by identical LaTeX, prefer expert
+        if len(deduped) > 1:
+            latex_groups: Dict[str, List[Dict[str, Any]]] = {}
+            for it in deduped:
+                lx = str(it.get("latex", ""))
+                latex_groups.setdefault(lx, []).append(it)
+            deduped2: List[Dict[str, Any]] = []
+            for lx, items in latex_groups.items():
+                chosen = None
+                for it in items:
+                    if str(it.get("source", "")).lower() == "expert":
+                        chosen = it
+                        break
+                if chosen is None:
+                    chosen = items[0]
+                deduped2.append(chosen)
+            deduped = deduped2
+
+        quantity_results[qid] = deduped
 
     # 构建结构：category -> extractid -> quantity_id
     results = {category: {extractid: quantity_results}}
