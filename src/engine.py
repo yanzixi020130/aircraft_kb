@@ -1204,17 +1204,14 @@ def find_formulas_by_quantity(
                 "message": f"category '{category}' not found in formulas.yaml",
             })
     if extractid is not None:
+        formulas_before_extractid = formulas
         formulas = [f for f in formulas if extractid in f.extractid]
+        extractid_matched = bool(formulas)
         if not formulas:
-            return _wrap_latex({
-                "status": "ok",
-                "category": category,
-                "extractid": extractid,
-                "formulas_path": _FORMULAS_DIR,
-                "quantity": quantity_id,
-                "categories": {},
-                "message": f"extractid '{extractid}' not found in formulas.yaml",
-            })
+            # Fallback: search in the overall formulas for the current category.
+            formulas = formulas_before_extractid
+    else:
+        extractid_matched = True
     symtab = _mk_symbols(list(quantities.keys()))
 
     grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
@@ -1241,6 +1238,7 @@ def find_formulas_by_quantity(
     return _wrap_latex({
         "status": "ok",
         "filters": {"category": category, "extractid": extractid},
+        "extractid_matched": extractid_matched,
         "formulas_path": _FORMULAS_DIR,
         "quantity": quantity_id,
         "categories": grouped,

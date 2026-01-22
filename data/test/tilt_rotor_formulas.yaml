@@ -5,6 +5,7 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 巡航功率与升阻比关系
     expr: P_cruise = Vc * W0 * g / K
@@ -17,6 +18,7 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_wing_weight_estimation
     name_zh: 机翼重量估算
     expr: Wwing = 19.938 * W0**0.389 * Swing**0.843 * (1 + cos(Lambda_w0_25))**-1.017
@@ -90,12 +92,14 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_maximum_required_thrust_with_safety_factor
     name_zh: 带安全系数的最大所需推力
     expr: Tmax = Tla * asafe
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_motor_propeller_total_efficiency
     name_zh: 电机螺旋桨总效率
     expr: etampt = P_cruise / P_av
@@ -144,6 +148,7 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_induced_drag_factor_from_aspect_ratio_efficiency
     name_zh: 诱导阻力因子从展弦比和效率推导
     expr: Kmax = 1 / (pi * A * e)
@@ -344,6 +349,7 @@ formulas:
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 基本结构重量公式
     expr: W_basic = 25.41 * chi_basic * f_LGic * f_LGret * f_ramp * (W_MTO / 1000)**0.4879
@@ -351,132 +357,154 @@ formulas:
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 折叠部件重量公式
     expr: W_wfold = chi_wfold * f_wfold * (W_wing + W_tip)
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 余量重量公式
     expr: W_mar = chi_mar * f_mar * W_basic
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 增压系统重量公式
     expr: W_press = chi_press * f_press * W_basic
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 机身总重量公式
     expr: W_Fuselage = W_basic + W_wfold + W_mar + W_press
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 水平尾翼重量公式
     expr: W_ht = chi_ht * S_ht * (0.00395 * S_ht**0.2 * V_dive - 0.4885)
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 垂直尾翼重量公式
     expr: W_vt = chi_vt * S_vt * (0.00395 * S_vt**0.2 * V_dive - 0.4885)
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 尾翼总重量公式
     expr: W_Empennage = W_ht + W_vt
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 起落架重量公式
     expr: W_LG = chi_LG * f_LG * W_MTO
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 起落架回收重量公式
     expr: W_LGret = chi_LGret * f_LGret * W_LG
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 起落架舱重量公式
     expr: W_LGcw = chi_LGrw * f_LGrw * (W_LG + W_LGret)
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 起落架系统总重量公式
     expr: W_AG = W_LG + W_LGret + W_LGcw
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 支撑结构重量公式
     expr: W_supt = chi_supt * 0.0412 * (1 - f_airind) * (W_eng / N_eng)**1.1433 * N_eng**1.3762
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 整流罩重量公式
     expr: W_cowl = chi_cowl * 0.2315 * S_nac**1.3476
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 挂架重量公式
     expr: W_pylon = chi_pylon * f_pylon * W_MTO
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 进气系统重量公式
     expr: W_airind = chi_airind * 0.0412 * f_airind * (W_eng / N_eng)**1.1433 * N_eng**1.3762
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 推进系统总重量公式
     expr: W_NA = W_supt + W_cowl + W_pylon + W_airind
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 发动机总重量公式
     expr: W_eng = chi_eng * N_eng * W_oneeng
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 排气系统重量公式
     expr: W_exh = chi_exh * N_eng * (K_0exh + K_1exh * P)
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 加速系统重量公式
     expr: W_acc = 2.0088 * chi_acc * f_lub * (W_oneeng)**0.5919 * N_eng**0.7858
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 发动机总重量公式
     expr: W_Engine = W_eng + W_exh + W_acc
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 油箱重量公式
     expr: W_tank = 0.4341 * chi_tank * C_int**0.7717 * N_int**0.5897 * f_cwf_bt**1.9491
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 管路重量公式
     expr: W_plumb = chi_plumb * (K_0plumb + K_Iplumb * (0.01 * N_plumb + 0.06 * N_eng)
@@ -484,12 +512,14 @@ formulas:
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 燃油系统总重量公式
     expr: W_Fuel = W_tank + W_plumb
     category: tilt_rotor
     extractid:
     - plane_design
+    - Others
   - id: F_wing_weight_estimation
     name_zh: 齿轮箱单体重量公式
     expr: w_gbrs = 95.7634 * N_rotor**0.38553 * P_DSlimit**0.78137 * W_eng**0.09899

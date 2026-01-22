@@ -5,24 +5,28 @@ formulas:
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_loading
     name_zh: 总重量表达式（含燃油与结构占比）
     expr: W0 = W_crew + W_payload + (W_fuel / W0) * W0 + (W_empty / W0) * W0
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_loading
     name_zh: 总重量平衡方程（移项形式）
     expr: W0 - (W_fuel / W0) * W0 - (W_empty / W0) * W0 = W_crew + W_payload
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_loading
     name_zh: 总重量求解公式（含燃油与结构占比）
     expr: W0 = (W_crew + W_payload) / (1 - (W_fuel / W0) - (W_empty / W0))
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 航程与升阻比关系
     expr: R = (V / C) * (L / D) * ln(W_i_minus_1 / W_i)
@@ -101,6 +105,7 @@ formulas:
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 燃油消耗率单位换算
     expr: C = 0.51 / 3600
@@ -149,6 +154,7 @@ formulas:
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_weight_estimation
     name_zh: 机翼重量估算
     expr: We_W0 = 0.93 * W0**(-0.07)
@@ -292,7 +298,7 @@ formulas:
     expr: C_L_max = 0.9 * C_l_max * cos(Lambda_0_25c)
     category: fix_wing
     extractid:
-    - plane_design
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_loading
     name_zh: 起飞机翼载荷与功率载荷关系
     expr: WS = TOP * sigma * CLmaxTO * (hp / W)
@@ -853,8 +859,8 @@ formulas:
     expr: WS = W0 / Swing
     category: fix_wing
     extractid:
-    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_mach_number_definition
     name_zh: 马赫数定义
     expr: Mach = V / a
@@ -938,15 +944,15 @@ formulas:
     expr: WS = (2 * rho * Vs**2) / CLmax
     category: fix_wing
     extractid:
-    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_wing_loading_from_drag_min_condition
     name_zh: 由最小阻力条件计算机翼载荷
     expr: WS = (2 * rho * Vc**2 * CD0) / (CLstar**2)
     category: fix_wing
     extractid:
-    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 巡航功率由升阻比计算
     expr: Preq = (W0 * Vc) / (L / D)
@@ -1151,12 +1157,14 @@ formulas:
     category: fix_wing
     extractid:
     - plane_design
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_lift_coefficient_takeoff_configuration
     name_zh: 襟翼零升角增量
     expr: delta_alpha_OL = delta_alpha_OL_airfoil * (S_flapped / Sref) * cos(Lambda_HL)
     category: fix_wing
     extractid:
     - plane_design
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_mach_number_definition
     name_zh: 马赫数定义
     expr: Mach = sqrt(M**2 - 1)
@@ -1175,6 +1183,7 @@ formulas:
     category: fix_wing
     extractid:
     - plane_design
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_thickness_ratio
     name_zh: 翼型外形阻力因子
     expr: FF = (1 + 0.6 / (x_c)_m * tc + 100 * tc**4) * (1.34 * Mach**0.18 * cos(Lambda_m)**0.28)
@@ -1289,18 +1298,21 @@ formulas:
     expr: e = 1.78 * (1 - 0.045 * A**0.68) - 0.64
     category: fix_wing
     extractid:
+    - plane_design
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_oswald_efficiency_from_aspect_ratio
     name_zh: 奥斯瓦尔德效率因子公式2
     expr: e = 4.61 * (1 - 0.045 * A**0.68) * (cos(LambdaLE))**0.15 - 3.1
     category: fix_wing
     extractid:
+    - plane_design
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_oswald_efficiency_from_aspect_ratio
     name_zh: 奥斯瓦尔德效率因子公式3（含后掠角与展弦比）
     expr: e = (mu**2 * (1 + r)**2) / (mu**2 + 2 * sigma * mu * r + r**2)
     category: fix_wing
     extractid:
+    - plane_design
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_induced_drag_factor_from_aspect_ratio_efficiency
     name_zh: 超音速诱导阻力因子
@@ -1507,19 +1519,19 @@ formulas:
     expr: D_q_cooling = (4.9e-7) * shp * T**2 / (sigma * V)
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_air_cooling_heat_from_temperature_difference
     name_zh: 冷却直径（基于功率）
     expr: D_q_cooling = 6e-8 * P * T**2 / (sigma * V)
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_air_cooling_heat_from_temperature_difference
     name_zh: 杂项冷却直径
     expr: D_q_misc = 2e-4 * shp
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_wing_loading
     name_zh: 单叶片面积因子
     expr: AF_per_blade = 1e5 / D**5 * integral_0_15R_to_R(c * r**3)
@@ -1537,13 +1549,13 @@ formulas:
     expr: T = (C_T / C_P) * P / (n * D)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 推力与功率系数比（含bhp）
     expr: T = (C_T / C_P) * 550 * shp / (n * D)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_dynamic_pressure
     name_zh: 动态压力
     expr: q = P / A
@@ -1603,67 +1615,67 @@ formulas:
     expr: U = K * U_de
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 由功率计算最大推力
     expr: K = (0.88 * mu) / (5.3 + mu)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 由功率计算最大推力
     expr: K = (mu**1.03) / (6.95 + mu**1.03)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 由功率计算最大推力
     expr: V_p = Vs + Kp * (VL - Vs)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 由功率计算最大推力
     expr: Kp = 0.15 + 5400 / (W0 + 3300)
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_thickness_ratio
     name_zh: 厚度比
     expr: sigma = P / A
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_thickness_ratio
     name_zh: 厚度比
     expr: epsilon = Delta_L / L
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_thickness_ratio
     name_zh: 厚度比
     expr: E = sigma / epsilon
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_thickness_ratio
     name_zh: 厚度比
     expr: tau = P_shear / A
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_thickness_ratio
     name_zh: 厚度比
     expr: G = tau / gamma
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_lift
     name_zh: 弹性模量与剪切模量关系
     expr: G = E / (2 * (1 - mu))
     category: fix_wing
     extractid:
-    - Others
+    - plane_design
   - id: F_mach_number_definition
     name_zh: 滞止温度与环境温度关系
     expr: T_stagnation = T_ambient * (1 + 0.2 * Mach**2)
@@ -1926,13 +1938,13 @@ formulas:
     expr: epsilon1 = (0.093 - 0.077) / 12
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_thickness_ratio
     name_zh: 应变2计算
     expr: epsilon2 = (0.077 - 0) / 14
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_wing_weight_estimation
     name_zh: 前起落架重量估算
     expr: W_nose_landing_gear = 0.032 * K_np * W_l**0.646 * N_l**0.2 * L_n**0.5 * N_nw**0.45
@@ -2021,7 +2033,7 @@ formulas:
     expr: tc = 100 * t / c
     category: fix_wing
     extractid:
-    - Others
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_mach_number_definition
     name_zh: 马赫数定义
     expr: Mach = Vc / a
@@ -2034,6 +2046,7 @@ formulas:
     category: fix_wing
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_max_thrust_from_power
     name_zh: 最大推力与功率关系
     expr: Tmax = Pmax / Vc
@@ -2051,12 +2064,14 @@ formulas:
     expr: WS = (2 * W0) / (CLmax * rhoc * Vc**2)
     category: fix_wing
     extractid:
+    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_wing_loading_from_drag_min_condition
     name_zh: 基于最小阻力的机翼载荷
     expr: WS = (2 * W0) / (CLstar * rhoc * Vc**2)
     category: fix_wing
     extractid:
+    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_induced_drag_factor_from_aspect_ratio_efficiency
     name_zh: 诱导阻力因子与展弦比效率关系
@@ -2105,7 +2120,7 @@ formulas:
     expr: Tla = np * KE * Im0**2
     category: fix_wing
     extractid:
-    - plane_design
+    - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_motor_propeller_total_efficiency
     name_zh: 电机螺旋桨总效率
     expr: etampt = eta * etajs
@@ -2955,18 +2970,21 @@ formulas:
     expr: Wbat / W0 = E * V * g / (3.6 * Esb * etab2s * eta_p * L / D)
     category: fix_wing
     extractid:
+    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_battery_mass_from_required_power_sigma
     name_zh: 电池质量与所需功率关系
     expr: Wbat / W0 = R * g / (3.6 * Esb * etab2s * eta_p * L / D)
     category: fix_wing
     extractid:
+    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_battery_mass_from_required_power_sigma
     name_zh: 电池质量与所需功率关系
     expr: Wbat / W0 = h / (3.6 * V_V * Esb * etab2s) * P_used / m
     category: fix_wing
     extractid:
+    - Overall_Parameter_Extraction_Parameters
     - Flight_Performance_Analysis_Extraction_Parameters
   - id: F_payload_weight_from_takeoff_weight
     name_zh: 有效载荷重量与起飞重量关系
@@ -3127,6 +3145,7 @@ formulas:
     category: fix_wing
     extractid:
     - Overall_Parameter_Extraction_Parameters
+    - plane_design
   - id: F_battery_mass_from_required_power_sigma
     name_zh: 燃油消耗率关系
     expr: W_i / W_f_minus_1 = 1 - (c_power * d) / (W / P)
@@ -3376,6 +3395,7 @@ formulas:
     category: fix_wing
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
+    - Overall_Parameter_Extraction_Parameters
   - id: F_wing_weight_estimation
     name_zh: 机翼重量估算
     expr: psi_3 == 56 * 98 * 977
@@ -3393,12 +3413,14 @@ formulas:
     expr: (eg_6_10 / eg_6_9) * (W_4 / W_3)_M_1_1_4 == 0.9616
     category: fix_wing
     extractid:
+    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_wing_loading_from_drag_min_condition
     name_zh: 最小阻力条件下机翼载荷
     expr: W_4 / W_3 == 9616 / 9773
     category: fix_wing
     extractid:
+    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_mach_number_definition
     name_zh: 马赫数定义
@@ -3454,6 +3476,7 @@ formulas:
     expr: WS = sqrt(2 * W0 * g / (rho * CLstar * sqrt(CD0 / K)))
     category: fix_wing
     extractid:
+    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 巡航功率由升阻比计算
@@ -3563,7 +3586,7 @@ formulas:
     expr: Qcreated = Istack * deltahf0
     category: fix_wing
     extractid:
-    - Flight_Performance_Analysis_Extraction_Parameters
+    - Others
   - id: F_fold_location_from_wingspan
     name_zh: 折叠位置由翼展计算
     expr: klocation = b * 0.25
