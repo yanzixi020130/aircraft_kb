@@ -71,13 +71,25 @@ def api_find_formulas_by_quantities(
     )
 
 
+class KnownInputItem(BaseModel):
+    quantity_id: str | None = None
+    symbol: str | None = None
+    name: str | None = None
+    value: str | None = None
+    unit: str | None = None
+    context: str | None = None
+    source: str | None = None
+
+
 class SolveTargetsAutoRequest(BaseModel):
     category: str
     extractid: str | None = None
-    known_inputs: Dict[str, str]
+    known_inputs: list[KnownInputItem] | Dict[str, str]
     targets: list[str]
     formula_overrides: Dict[str, Any] | None = None
     max_steps: int = 50
+    taskid: str | None = None
+    formulaKey: str | None = None
 
 
 class SelectedFormula(BaseModel):
@@ -112,6 +124,8 @@ def api_solve_targets_auto(
         targets=payload.targets,
         formula_overrides=payload.formula_overrides,
         max_steps=payload.max_steps,
+        taskid=payload.taskid,
+        formula_key=payload.formulaKey,
     )
 
 
@@ -130,65 +144,9 @@ def api_generate_known_inputs(payload: GenerateKnownInputsRequest) -> Dict[str, 
     """
     category = "expert"
     try:
-        # Generate known inputs using LLM or fallback
-        known_inputs = generate_known_inputs_from_payload(payload.dict(), category=category)
-
-        # Load quantities from expert and thesis to determine metadata and source
-        quantities_expert = load_all_quantities(os.path.join(BASE_DIR, "data", "quantities", "expert"))
-        quantities_thesis = load_all_quantities(os.path.join(BASE_DIR, "data", "quantities", "thesis"))
-
-        def split_value(val: str) -> tuple[str, str | None]:
-            text = str(val).strip()
-            # Try to split into numeric and unit by first space
-            if " " in text:
-                num, unit = text.split(" ", 1)
-                return num, unit.strip() or None
-            return text, None
-
-        variables = []
-        # Try to enrich context from incoming payload's selectedFormulas
-        selected = (payload.params.selectedFormulas if payload and payload.params else {})
-
-        for rid, raw in known_inputs.items():
-            # Determine source and quantity spec (prefer expert)
-            qspec = None
-            source = "llm"
-            if rid in quantities_expert:
-                qspec = quantities_expert[rid]
-                source = "expert"
-            elif rid in quantities_thesis:
-                qspec = quantities_thesis[rid]
-                source = "thesis"
-
-            num, unit = split_value(raw)
-            # Normalize unit: if quantities has canonical unit and current unit is None, use canonical (except dimensionless "1")
-            if qspec is not None:
-                canonical_unit = qspec.unit
-                if (unit is None) and canonical_unit and canonical_unit != "1":
-                    unit = canonical_unit
-
-            symbol_latex = qspec.symbol_latex if qspec is not None else rid
-            name_zh = qspec.name_zh if qspec is not None else rid
-
-            # Context: prefer SelectedFormula.quantity_name_zh if provided
-            context_text = ""
-            if isinstance(selected, dict) and rid in selected:
-                sf = selected[rid]
-                context_text = getattr(sf, "quantity_name_zh", None) or ""
-            if not context_text:
-                context_text = f"变量：{name_zh}"
-
-            variables.append({
-                "quantity_id": rid,
-                "symbol": f"${symbol_latex}$",
-                "name": name_zh,
-                "value": num,
-                "unit": unit,
-                "context": context_text,
-                "source": source,
-            })
-
-        return {"variables": variables, "status": "ok", "category": category}
+        # 直接调用新版generate_known_inputs_response，自动处理物理量库优先和llm生成
+        from llm_generate_known_inputs import generate_known_inputs_response
+        return generate_known_inputs_response(payload.dict(), category=category)
     except Exception as e:  # pragma: no cover - defensive
         return {"status": "error", "message": str(e)}
 

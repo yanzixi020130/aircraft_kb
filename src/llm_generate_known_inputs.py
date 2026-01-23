@@ -13,9 +13,10 @@ module will:
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Any
 
 import yaml
 
@@ -98,7 +99,11 @@ def _collect_required_inputs(selected_formulas: Dict[str, Dict]) -> Set[str]:
     return required
 
 
-def _ensure_units(known_inputs: Dict[str, str], quantities: Dict[str, Dict]) -> Dict[str, str]:
+def _ensure_units(
+    known_inputs: Dict[str, str],
+    quantities: Dict[str, Dict],
+    unit_overrides: Dict[str, str] | None = None,
+) -> Dict[str, str]:
     """Attach canonical units to numeric-only values when unit is known.
 
     If a value already contains unit text or the quantity is dimensionless (unit "1"),
@@ -106,6 +111,7 @@ def _ensure_units(known_inputs: Dict[str, str], quantities: Dict[str, Dict]) -> 
     """
 
     hydrated: Dict[str, str] = {}
+    unit_overrides = unit_overrides or {}
     for rid, raw_val in known_inputs.items():
         text = str(raw_val).strip()
         if rid in quantities:
@@ -113,8 +119,19 @@ def _ensure_units(known_inputs: Dict[str, str], quantities: Dict[str, Dict]) -> 
             if unit not in (None, "", "1") and _NUMERIC_ONLY_RE.match(text):
                 hydrated[rid] = f"{text} {unit}"
                 continue
+        elif rid in unit_overrides:
+            unit = unit_overrides[rid]
+            if unit not in (None, "", "1") and _NUMERIC_ONLY_RE.match(text):
+                hydrated[rid] = f"{text} {unit}"
+                continue
         hydrated[rid] = text
     return hydrated
+
+
+def _chunk_list(items: List[str], size: int) -> List[List[str]]:
+    if size <= 0:
+        return [items]
+    return [items[i : i + size] for i in range(0, len(items), size)]
 
 
 def _build_prompt(
@@ -141,6 +158,183 @@ def _build_prompt(
     lines.append("要求：数值使用阿拉伯数字，尽量 2~3 位有效数字，保持各物理量量纲一致且数量级合理。")
     lines.append(f"类别: {category}, formulaKey: {formula_key}")
     return "\n".join(lines)
+
+
+def _build_unit_prompt(*, required: List[str]) -> str:
+    lines = []
+    lines.append("Provide SI units only for the variables below.")
+    lines.append("Return pure JSON without explanations.")
+    lines.append('Format: {"units": {"rid": "<unit>", ...}}')
+    lines.append("")
+    for rid in required:
+        lines.append(f"- {rid}")
+    return "\n".join(lines)
+
+
+def _build_value_prompt(
+    *,
+    required: List[str],
+    units: Dict[str, str],
+    category: str,
+    formula_key: str | None,
+) -> str:
+    lines = []
+    lines.append("Generate reasonable numeric values for the variables below.")
+    lines.append("Return pure JSON, no explanations.")
+    lines.append('Format: {"known_inputs": {"rid": "<value> <unit>", ...}}')
+    lines.append("")
+    for rid in required:
+        unit = units.get(rid, "")
+        if unit:
+            lines.append(f"- {rid}: unit {unit}")
+        else:
+            lines.append(f"- {rid}: unit choose a reasonable SI unit")
+    lines.append(f"category: {category}, formulaKey: {formula_key}")
+    return "\n".join(lines)
+
+
+
+
+def _build_metadata_prompt(
+    *,
+    required: List[str],
+    quantities: Dict[str, Dict] | None = None,
+) -> str:
+    lines = []
+    lines.append("You are generating metadata for physical variables.")
+    lines.append("For each variable id, return:")
+    lines.append("- name_zh: Chinese name (must include Chinese characters).")
+    lines.append("- context: Chinese definition in the exact format '<name_zh>：<definition>'.")
+    lines.append("- symbol_latex: LaTeX symbol, e.g. \\alpha, \\mu, V_{tip}.")
+    lines.append("- unit: SI unit or '1' for dimensionless.")
+    lines.append("Do NOT use placeholders such as '变量', '未知', '未识别', '未提供', '待补充'.")
+    lines.append("If a name_zh is provided below, you MUST use it exactly in both name_zh and context prefix.")
+    lines.append("Return pure JSON only.")
+    lines.append('Format: {"meta": {"rid": {"name_zh": "...", "context": "...", "symbol_latex": "...", "unit": "..."}}}')
+    lines.append("")
+    quantities = quantities or {}
+    for rid in required:
+        name_zh = ""
+        if rid in quantities:
+            name_zh = str(quantities[rid].get("name_zh") or "").strip()
+        if name_zh:
+            lines.append(f"- {rid}: name_zh={name_zh} (must use exactly)")
+        else:
+            lines.append(f"- {rid}: name_zh unknown")
+    return "\n".join(lines)
+
+
+def _parse_metadata_from_llm(text: str) -> Dict[str, Dict[str, str]]:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("No JSON object found")
+    obj = json.loads(text[start : end + 1])
+    if isinstance(obj, dict) and isinstance(obj.get("meta"), dict):
+        out: Dict[str, Dict[str, str]] = {}
+        for k, v in obj["meta"].items():
+            if isinstance(v, dict):
+                out[k] = {kk: str(vv) for kk, vv in v.items()}
+        return out
+    if isinstance(obj, dict):
+        out: Dict[str, Dict[str, str]] = {}
+        for k, v in obj.items():
+            if isinstance(v, dict):
+                out[k] = {kk: str(vv) for kk, vv in v.items()}
+        return out
+    raise ValueError("Invalid metadata JSON")
+
+
+def _infer_symbol_latex_from_id(rid: str) -> str:
+    s = str(rid)
+    greek_map = {
+        "alpha": r"\\alpha",
+        "beta": r"\\beta",
+        "gamma": r"\\gamma",
+        "delta": r"\\delta",
+        "epsilon": r"\\epsilon",
+        "zeta": r"\\zeta",
+        "eta": r"\\eta",
+        "theta": r"\\theta",
+        "iota": r"\\iota",
+        "kappa": r"\\kappa",
+        "lambda": r"\\lambda",
+        "mu": r"\\mu",
+        "nu": r"\\nu",
+        "xi": r"\\xi",
+        "omicron": "o",
+        "pi": r"\\pi",
+        "rho": r"\\rho",
+        "sigma": r"\\sigma",
+        "tau": r"\\tau",
+        "upsilon": r"\\upsilon",
+        "phi": r"\\phi",
+        "chi": r"\\chi",
+        "psi": r"\\psi",
+        "omega": r"\\omega",
+    }
+    lower = s.lower()
+    for name, latex in greek_map.items():
+        if lower.startswith(name):
+            rest = s[len(name):]
+            if rest:
+                rest = rest.lstrip("_")
+                return f"{latex}_{{{rest}}}"
+            return latex
+    return s
+
+
+
+def _has_chinese(text: str) -> bool:
+    return bool(re.search(r"[\u4e00-\u9fff]", str(text or "")))
+
+
+_BAD_TEXT_SNIPPETS = (
+    "变量",
+    "未识别",
+    "未知",
+    "未提供",
+    "未给出",
+    "无定义",
+    "无描述",
+    "不确定",
+    "无法",
+    "待补充",
+    "未说明",
+)
+
+
+def _is_valid_name_zh(text: str) -> bool:
+    s = str(text or "").strip()
+    if not _has_chinese(s):
+        return False
+    return not any(bad in s for bad in _BAD_TEXT_SNIPPETS)
+
+
+def _is_valid_context(name_zh: str, context: str) -> bool:
+    name = str(name_zh or "").strip()
+    s = str(context or "").strip()
+    if not name or not _has_chinese(s):
+        return False
+    if any(bad in s for bad in _BAD_TEXT_SNIPPETS):
+        return False
+    if not re.match(rf"^{re.escape(name)}\s*[:：]", s):
+        return False
+    remainder = re.sub(rf"^{re.escape(name)}\s*[:：]\s*", "", s)
+    return _has_chinese(remainder) and len(remainder) >= 4
+
+
+def _parse_units_from_llm(text: str) -> Dict[str, str]:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("No JSON object found")
+    obj = json.loads(text[start : end + 1])
+    if isinstance(obj, dict) and isinstance(obj.get("units"), dict):
+        return {k: str(v) for k, v in obj["units"].items()}
+    if isinstance(obj, dict):
+        return {k: str(v) for k, v in obj.items()}
+    raise ValueError("Invalid units JSON")
 
 
 def _parse_known_inputs_from_llm(text: str) -> Dict[str, str]:
@@ -267,17 +461,54 @@ def generate_known_inputs_from_payload(
 
     required = sorted(resolved)
 
-    # Build prompt
-    prompt = _build_prompt(required=required, quantities=quantities, category=cat, formula_key=formula_key)
-
     llm_config = llm_cfg or LLMConfig()
     client = LLMClient(llm_config)
 
-    try:
-        llm_text = client.completion_text(user_prompt=prompt, temperature=0.2)
-        known_inputs = _parse_known_inputs_from_llm(llm_text)
-    except Exception:
-        known_inputs = _fallback_values(required, quantities)
+    batch_size = int(os.getenv("LLM_KNOWN_INPUTS_BATCH_SIZE", "8"))
+    retries = int(os.getenv("LLM_KNOWN_INPUTS_RETRIES", "2"))
+
+    # First pass: fill units for unknown variables (batched to limit context).
+    unit_overrides: Dict[str, str] = {}
+    unknowns = [rid for rid in required if rid not in quantities]
+    if unknowns:
+        for batch in _chunk_list(unknowns, batch_size):
+            prompt_units = _build_unit_prompt(required=batch)
+            for _ in range(retries + 1):
+                try:
+                    unit_text = client.completion_text(user_prompt=prompt_units, temperature=0.1)
+                    unit_overrides.update(_parse_units_from_llm(unit_text))
+                    break
+                except Exception:
+                    continue
+
+    # Second pass: generate values in small batches to reduce context length.
+    known_inputs: Dict[str, str] = {}
+    units_map: Dict[str, str] = {}
+    for rid in required:
+        if rid in quantities:
+            units_map[rid] = str(quantities[rid].get("unit", "1"))
+        elif rid in unit_overrides:
+            units_map[rid] = unit_overrides[rid]
+
+    for batch in _chunk_list(required, batch_size):
+        prompt_vals = _build_value_prompt(
+            required=batch,
+            units=units_map,
+            category=cat,
+            formula_key=formula_key,
+        )
+        for _ in range(retries + 1):
+            try:
+                llm_text = client.completion_text(user_prompt=prompt_vals, temperature=0.2)
+                known_inputs.update(_parse_known_inputs_from_llm(llm_text))
+                break
+            except Exception:
+                continue
+
+    # Fallback for any missing items
+    missing = [rid for rid in required if rid not in known_inputs or not str(known_inputs[rid]).strip()]
+    if missing:
+        known_inputs.update(_fallback_values(missing, quantities))
 
     # Ensure all required keys present
     for rid in required:
@@ -285,7 +516,7 @@ def generate_known_inputs_from_payload(
             known_inputs[rid] = _fallback_values([rid], quantities)[rid]
 
     # Attach canonical units if the LLM returned numeric-only values
-    known_inputs = _ensure_units(known_inputs, quantities)
+    known_inputs = _ensure_units(known_inputs, quantities, unit_overrides=unit_overrides)
 
     return known_inputs
 
@@ -313,56 +544,80 @@ def generate_known_inputs_response(
     category: str | None = None,
     llm_cfg: LLMConfig | None = None,
 ) -> Dict[str, Any]:
-    """API-style response builder that returns variables with quantity_id.
+    """API-style response builder that returns variables with quantity_id."""
 
-    Input payload example (abridged):
-    {
-      "type": "checkpoint.reply",
-      "params": {
-        "formulaKey": "plane_design",
-        "selectedFormulas": {
-          "q": {"expr": "L = q * Swing * CL", ...},
-          "Wload": {"expr": "Wload = kload * W0", ...}
-        }
-      }
-    }
-
-    Output shape:
-    {
-      "variables": [
-        {"quantity_id": "CL", "symbol": "$C_{L}$", "name": "升力系数", "value": "0.5", "unit": null, "context": "变量：升力系数", "source": "expert"},
-        ...
-      ],
-      "status": "ok",
-      "category": "expert"
-    }
-    """
-
-    # Generate known_inputs first
     known_inputs = generate_known_inputs_from_payload(payload, category=category, llm_cfg=llm_cfg)
 
-    # Load quantities + aliases to resolve metadata
     cat = (category or DEFAULT_CATEGORY).strip()
     quantities, aliases = _load_quantities(cat)
 
+    meta_map: Dict[str, Dict[str, str]] = {}
+    if known_inputs:
+        batch_size = int(os.getenv("LLM_KNOWN_INPUTS_BATCH_SIZE", "8"))
+        retries = int(os.getenv("LLM_KNOWN_INPUTS_RETRIES", "2"))
+        client = LLMClient(llm_cfg or LLMConfig())
+        request_ids: List[str] = []
+        for rid in known_inputs.keys():
+            qid = aliases.get(rid, rid)
+            request_ids.append(qid)
+        seen_ids: Set[str] = set()
+        request_ids = [x for x in request_ids if not (x in seen_ids or seen_ids.add(x))]
+        for batch in _chunk_list(request_ids, batch_size):
+            prompt_meta = _build_metadata_prompt(required=batch, quantities=quantities)
+            for _ in range(retries + 1):
+                try:
+                    meta_text = client.completion_text(user_prompt=prompt_meta, temperature=0.1)
+                    meta_map.update(_parse_metadata_from_llm(meta_text))
+                    break
+                except Exception:
+                    continue
+
+        # Retry only the ids that still lack valid name/context (especially for unknown quantities).
+        missing_meta: List[str] = []
+        for rid in known_inputs.keys():
+            qid = aliases.get(rid, rid)
+            spec = quantities.get(qid, {})
+            name_zh = spec.get("name_zh") or meta_map.get(qid, {}).get("name_zh") or ""
+            if not _is_valid_name_zh(name_zh):
+                missing_meta.append(qid)
+                continue
+            context = meta_map.get(qid, {}).get("context", "")
+            if not _is_valid_context(name_zh, context):
+                missing_meta.append(qid)
+
+        seen_ids = set()
+        missing_meta = [x for x in missing_meta if not (x in seen_ids or seen_ids.add(x))]
+        for batch in _chunk_list(missing_meta, batch_size):
+            if not batch:
+                continue
+            prompt_meta = _build_metadata_prompt(required=batch, quantities=quantities)
+            for _ in range(retries + 1):
+                try:
+                    meta_text = client.completion_text(user_prompt=prompt_meta, temperature=0.1)
+                    meta_map.update(_parse_metadata_from_llm(meta_text))
+                    break
+                except Exception:
+                    continue
+
     variables: List[Dict[str, Any]] = []
     for rid, raw in known_inputs.items():
-        qid = rid
-        # Map alias back to canonical id if needed
-        if qid in aliases:
-            qid = aliases[qid]
-
+        qid = aliases.get(rid, rid)
         spec = quantities.get(qid, {})
-        name_zh = spec.get("name_zh") or qid
-        # Prefer LaTeX symbol if available; else fallback to id itself
-        symbol_latex = spec.get("symbol_latex") or spec.get("symbol") or qid
+        meta = meta_map.get(qid, {})
+
+        name_zh = spec.get("name_zh") or meta.get("name_zh") or ""
+        if not _is_valid_name_zh(name_zh):
+            name_zh = ""
+
+        symbol_latex = spec.get("symbol_latex") or spec.get("symbol") or meta.get("symbol_latex") or _infer_symbol_latex_from_id(qid)
         symbol_out = f"${symbol_latex}$" if not str(symbol_latex).startswith("$") else str(symbol_latex)
 
         val_str, unit_str = _split_value_unit(raw)
-        # If canonical unit is dimensionless ('1'), suppress unit in output
-        canonical_unit = spec.get("unit", "1")
+        canonical_unit = spec.get("unit", meta.get("unit", "1"))
         if canonical_unit == "1":
             unit_str = None
+
+        context = meta.get("context") if _is_valid_context(name_zh, meta.get("context", "")) else ""
 
         variables.append(
             {
@@ -371,8 +626,7 @@ def generate_known_inputs_response(
                 "name": name_zh,
                 "value": val_str,
                 "unit": unit_str,
-                "context": f"变量：{name_zh}",
-                # Default to category as source; if not found in YAML, mark as llm
+                "context": context,
                 "source": (spec and cat) or "llm",
             }
         )
@@ -382,6 +636,7 @@ def generate_known_inputs_response(
         "status": "ok",
         "category": cat,
     }
+
 
 __all__ = [
     "generate_known_inputs_from_payload",

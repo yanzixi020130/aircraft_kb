@@ -54,7 +54,8 @@ PROMPT_JSON_TEMPLATE = """
 规则：
 - extractid 必须是数组，元素只能来自四个枚举
 - 若同时符合多个阶段，必须输出多个（不要只选一个）
-- 只有无法归入前三类时才用 Others
+- 如果输入已给出 extractid，必须保留这些已有值；如判断还适用于其他阶段，只能补充除已有值和 Others 之外的其他阶段
+- 只有在没有已有 extractid 且无法归入前三类时才用 Others
 """
 
 import json

@@ -179,6 +179,115 @@ def load_all_quantities(dir_path: str = _QUANTITIES_DIR) -> Dict[str, QuantitySp
     return qmap
 
 
+def _normalize_quantity_key(value: str) -> str:
+    s = str(value or "")
+    s = s.replace("\\", "").replace("{", "").replace("}", "").replace("$", "")
+    s = re.sub(r"\s+", "", s)
+    return s.strip().lower()
+
+
+def _build_quantity_index(quantities: Dict[str, QuantitySpec]) -> Dict[str, List[str]]:
+    index: Dict[str, List[str]] = {}
+    for q in quantities.values():
+        for raw in (q.name_zh, q.symbol, q.symbol_latex):
+            key = _normalize_quantity_key(raw)
+            if key:
+                index.setdefault(key, []).append(q.id)
+    return index
+
+
+def _split_value_unit(raw: str) -> Tuple[str, str | None]:
+    s = str(raw).strip()
+    if not s:
+        return "", None
+    parts = s.rsplit(" ", 1)
+    if len(parts) == 2 and parts[1]:
+        return parts[0], parts[1]
+    return s, None
+
+
+def _build_temp_quantities(
+    known_inputs: Dict[str, str],
+    known_inputs_meta: Dict[str, Dict[str, Any]] | None = None,
+    existing: Dict[str, QuantitySpec] | None = None,
+) -> Dict[str, QuantitySpec]:
+    """Build temporary QuantitySpec entries for known inputs missing from the library."""
+    existing = existing or {}
+    known_inputs_meta = known_inputs_meta or {}
+    temp: Dict[str, QuantitySpec] = {}
+    for raw_key, raw_val in (known_inputs or {}).items():
+        key = str(raw_key).strip()
+        if not key or key in existing:
+            continue
+        meta = known_inputs_meta.get(key, {}) if isinstance(known_inputs_meta, dict) else {}
+        name_zh = str(meta.get("name_zh") or meta.get("name") or "")
+        symbol = str(meta.get("symbol") or key)
+        symbol_latex = str(meta.get("symbol_latex") or symbol)
+        unit = str(meta.get("unit") or "")
+        if not unit:
+            _, unit_guess = _split_value_unit(raw_val)
+            unit = unit_guess or "1"
+        if not name_zh and re.search(r"[\u4e00-\u9fff]", key):
+            name_zh = key
+        if not name_zh:
+            name_zh = key
+        temp[key] = QuantitySpec(
+            id=key,
+            symbol=symbol,
+            symbol_latex=symbol_latex,
+            name_zh=name_zh,
+            unit=unit,
+        )
+    return temp
+
+
+def _resolve_quantity_inputs(
+    inputs: List[str],
+    quantities: Dict[str, QuantitySpec],
+) -> Tuple[List[str], List[str], Dict[str, str], Dict[str, List[str]]]:
+    """Resolve input quantity identifiers or Chinese names to quantity ids.
+
+    Returns:
+      resolved_ids: list of quantity ids (deduped, order-preserving)
+      unresolved_inputs: list of raw inputs not resolved to a unique id
+      resolved_map: mapping of raw input -> resolved id (only for resolved)
+      ambiguous_map: mapping of raw input -> list of matching ids (name_zh duplicates)
+    """
+    name_index = _build_quantity_index(quantities)
+
+    resolved_ids: List[str] = []
+    unresolved_inputs: List[str] = []
+    resolved_map: Dict[str, str] = {}
+    ambiguous_map: Dict[str, List[str]] = {}
+    seen: set[str] = set()
+
+    for raw in inputs:
+        raw_str = str(raw).strip()
+        if not raw_str:
+            continue
+        if raw_str in quantities:
+            if raw_str not in seen:
+                resolved_ids.append(raw_str)
+                seen.add(raw_str)
+            resolved_map[raw_str] = raw_str
+            continue
+        key = _normalize_quantity_key(raw_str)
+        matches = name_index.get(key, [])
+        if len(matches) == 1:
+            rid = matches[0]
+            if rid not in seen:
+                resolved_ids.append(rid)
+                seen.add(rid)
+            resolved_map[raw_str] = rid
+        elif len(matches) > 1:
+            ambiguous_map[raw_str] = matches
+            unresolved_inputs.append(raw_str)
+        else:
+            unresolved_inputs.append(raw_str)
+
+    return resolved_ids, unresolved_inputs, resolved_map, ambiguous_map
+
+
 def load_all_formulas(dir_path: str = _FORMULAS_DIR) -> List[FormulaSpec]:
     """Load formulas from all YAML files under a directory.
 
@@ -339,10 +448,11 @@ def _parse_known_inputs_to_magnitudes(
     """
     known_vals: Dict[str, float] = {}
     for k, s in known_inputs.items():
-        if k not in quantities:
-            raise KeyError(f"known key '{k}' not in quantities. Available: {sorted(quantities.keys())}")
-
-        canonical_unit = quantities[k].unit
+        k = str(k).strip()
+        if not k:
+            continue
+        qid = k
+        canonical_unit = quantities.get(qid).unit if qid in quantities else "1"
         s = str(s).strip()
 
         # If user provided unit text, parse directly; else attach canonical unit.
@@ -354,13 +464,13 @@ def _parse_known_inputs_to_magnitudes(
         # Handle conversion: only convert if canonical_unit is not "1"
         if canonical_unit != "1":
             qv = qv.to(ureg(canonical_unit))
-            known_vals[k] = qv.magnitude
+            known_vals[qid] = qv.magnitude
         else:
             # For dimensionless quantities, just use the magnitude
             if hasattr(qv, 'magnitude'):
-                known_vals[k] = qv.magnitude
+                known_vals[qid] = qv.magnitude
             else:
-                known_vals[k] = float(qv)
+                known_vals[qid] = float(qv)
 
     return known_vals
 
@@ -964,34 +1074,20 @@ def solve_targets_auto(
     *,
     category: str,
     extractid: Optional[str] = None,
-    known_inputs: Dict[str, str],
+    known_inputs: List[Dict[str, Any]] | Dict[str, str],
     targets: List[str],
     formula_overrides: Dict[str, Any] | None = None,
     max_steps: int = 50,
+    known_inputs_meta: Dict[str, Dict[str, Any]] | None = None,
+    taskid: str | None = None,
+    formula_key: str | None = None,
 ) -> Dict[str, Any]:
-    # First, get the formulas structure
-    formulas_result = find_formulas_by_quantities(
-        category=category,
-        extractid=extractid,
-        quantity_ids=targets,
-    )
-    
-    if formulas_result["status"] != "ok":
-        return formulas_result
-    
-    # Now, fill quantity_value where possible
-    quantities, eqs, symtab = _load_category_context(category)
-    ureg = _pint_ureg()
-    known_vals = _parse_known_inputs_to_magnitudes(ureg, quantities, known_inputs)
+    _ = known_inputs_meta, taskid, formula_key
 
-    # Load all formulas for matching (by expr+source) within this category
-    formulas_all = load_all_formulas(_FORMULAS_DIR)
-    formulas_cat = [f for f in formulas_all if f.category == category]
+    def _extract_identifiers(expr: str) -> List[str]:
+        return re.findall(r"[A-Za-z_][A-Za-z0-9_]*", expr)
 
-    def _norm_expr(s: str) -> str:
-        return re.sub(r"\s+", "", s.replace("^", "**"))
-
-    allowed_sources = {"expert", "thesis", "llm"}
+    math_funcs = {"sin", "cos", "tan", "log", "ln", "sqrt", "exp", "abs", "pow"}
 
     def _fmt_quantity_value(v: Any) -> str:
         """Return numeric string without unit."""
@@ -1006,146 +1102,177 @@ def solve_targets_auto(
             except Exception:
                 pass
         return str(v)
-    
-    # Prepare override values computed from provided expr blocks
-    override_values: Dict[str, Any] = {}
-    override_exprs: Dict[str, str] = {}
-    override_sources: Dict[str, str] = {}
-    override_formula_ids: Dict[str, str] = {}
-    override_formula_names: Dict[str, str] = {}
-    if formula_overrides:
-        for qid, override in formula_overrides.items():
-            expr_str = None
-            source_override = None
-            if isinstance(override, dict):
-                expr_str = override.get("expr")
-                source_override = override.get("source")
-            else:
-                expr_str = str(override)
-            if not expr_str:
-                continue
 
-            # Require valid source
-            if source_override not in allowed_sources:
-                continue
-
-            # Find matching formula in library by expr+source (normalized)
-            match: FormulaSpec | None = None
-            for f in formulas_cat:
-                if f.source not in allowed_sources:
-                    continue
-                if source_override and f.source != source_override:
-                    continue
-                if _norm_expr(f.expr) == _norm_expr(expr_str):
-                    match = f
-                    break
-            if match is None:
-                continue
-
-            expr_to_use = match.expr
+    def _parse_numeric_value(raw: Any) -> float | None:
+        text = str(raw).strip()
+        if not text:
+            return None
+        try:
+            return float(text)
+        except Exception:
             try:
-                eq = _parse_equation(expr_to_use, symtab)
-                vars_in_eq = _symbols_in_equation(eq, symtab)
-                if qid in vars_in_eq:
-                    required = set(vars_in_eq) - {qid}
-                    if all(v in known_vals for v in required):
-                        value = solve_one(eq, known_vals, qid, symtab)
-                        override_values[qid] = value
-                        override_exprs[qid] = expr_to_use
-                        override_sources[qid] = match.source or source_override
-                        override_formula_ids[qid] = match.id
-                        override_formula_names[qid] = match.name_zh
-                        # 将覆盖求得的值写回 known_vals，便于后续链计算
-                        known_vals[qid] = value
+                val = parse_expr(text, transformations=TRANSFORMS)
+                return float(sp.N(val))
             except Exception:
-                # Silently ignore bad override exprs
-                pass
+                return None
 
-    results = formulas_result["results"]
-    
-    for cat, cat_data in results.items():
-        for extid, extid_data in cat_data.items():
-            for qid, formulas_list in extid_data.items():
-                # If override exists, replace the list with a single resolved entry
-                if qid in override_exprs:
-                    expr_override = override_exprs[qid]
-                    source_override = override_sources.get(qid, "")
-                    value_override = override_values.get(qid)
-                    fid_override = override_formula_ids.get(qid, "")
-                    fname_override = override_formula_names.get(qid, "")
+    def _clean_key(raw: str) -> str:
+        return str(raw).replace("\\", "").replace("{", "").replace("}", "").replace("$", "").strip()
 
-                    # Try to find matching entry by expr; else clone first entry
-                    chosen: Dict[str, Any] | None = None
-                    for formula_dict in formulas_list:
-                        if _norm_expr(formula_dict.get("expr", "")) == _norm_expr(expr_override) and formula_dict.get("source") == source_override:
-                            chosen = dict(formula_dict)
-                            break
-                    if chosen is None:
-                        chosen = dict(formulas_list[0]) if formulas_list else {}
-                        chosen.setdefault("formula_id", "")
-                        chosen.setdefault("formula_name_zh", "")
-                        chosen["expr"] = expr_override
-                        chosen["latex"] = expr_to_latex(expr=expr_override, quantities=quantities)
+    def _norm_key(raw: str) -> str:
+        return _normalize_quantity_key(raw)
 
-                    if fid_override:
-                        chosen["formula_id"] = fid_override
-                    if fname_override:
-                        chosen["formula_name_zh"] = fname_override
+    def _norm_key_no_us(raw: str) -> str:
+        return _normalize_quantity_key(raw).replace("_", "")
 
-                    # Fill meta fields
-                    if not chosen.get("quantity_name_zh") and qid in quantities:
-                        chosen["quantity_name_zh"] = quantities[qid].name_zh
-                    chosen["source"] = source_override or chosen.get("source", "")
-
-                    # Fill value if solved
-                    chosen["quantity_value"] = ""
-                    if value_override is not None:
-                        chosen["quantity_value"] = _fmt_quantity_value(value_override)
-
-                    # Replace list with single chosen entry
-                    extid_data[qid] = [chosen]
+    exprs: Dict[str, str] = {}
+    tokens: set[str] = set()
+    formula_overrides = formula_overrides or {}
+    for qid, override in formula_overrides.items():
+        expr_str = ""
+        if isinstance(override, dict):
+            expr_str = str(override.get("expr") or "")
+        else:
+            expr_str = str(override or "")
+        if expr_str:
+            exprs[qid] = expr_str
+            for tok in _extract_identifiers(expr_str):
+                if tok in math_funcs:
                     continue
+                if tok.lower() in {"e", "pi"}:
+                    continue
+                tokens.add(tok)
+        tokens.add(str(qid))
 
-                # Otherwise, attempt to compute values based on each formula's expr with available knowns
-                for formula_dict in formulas_list:
-                    expr_str = formula_dict["expr"]
-                    try:
-                        eq = _parse_equation(expr_str, symtab)
-                        vars_in_eq = _symbols_in_equation(eq, symtab)
-                        if qid in vars_in_eq:
-                            required = set(vars_in_eq) - {qid}
-                            if all(v in known_vals for v in required):
-                                try:
-                                    value = solve_one(eq, known_vals, qid, symtab)
-                                    formula_dict["quantity_value"] = _fmt_quantity_value(value)
-                                except Exception:
-                                    pass  # Keep empty if cannot solve
-                    except Exception:
-                        pass  # Skip if cannot parse
-    # Filter out entries that lack latex; clean empty buckets
-    cats_to_del = []
-    for cat, cat_data in results.items():
-        ext_to_del = []
-        for extid, extid_data in cat_data.items():
-            qids_to_del = []
-            for qid, formulas_list in extid_data.items():
-                filtered = [f for f in formulas_list if f.get("latex")]
-                if filtered:
-                    extid_data[qid] = filtered
-                else:
-                    qids_to_del.append(qid)
-            for qid in qids_to_del:
-                extid_data.pop(qid, None)
-            if not extid_data:
-                ext_to_del.append(extid)
-        for extid in ext_to_del:
-            cat_data.pop(extid, None)
-        if not cat_data:
-            cats_to_del.append(cat)
-    for cat in cats_to_del:
-        results.pop(cat, None)
+    symtab = _mk_symbols(sorted(tokens))
 
-    return formulas_result
+    def _add_unique(mapping: Dict[str, str | None], key: str, token: str) -> None:
+        if key in mapping and mapping[key] != token:
+            mapping[key] = None
+        else:
+            mapping[key] = token
+
+    token_map: Dict[str, str | None] = {}
+    token_map_no_us: Dict[str, str | None] = {}
+    for tok in tokens:
+        _add_unique(token_map, _norm_key(tok), tok)
+        _add_unique(token_map_no_us, _norm_key_no_us(tok), tok)
+
+    known_vals: Dict[str, float] = {}
+    if isinstance(known_inputs, dict):
+        known_items: List[Dict[str, Any]] = [{"quantity_id": k, "value": v} for k, v in known_inputs.items()]
+    else:
+        known_items = []
+        for item in known_inputs or []:
+            if isinstance(item, dict):
+                known_items.append(item)
+                continue
+            if hasattr(item, "model_dump"):
+                known_items.append(item.model_dump())
+                continue
+            if hasattr(item, "dict"):
+                known_items.append(item.dict())
+
+    for item in known_items:
+        raw_key = item.get("quantity_id") or item.get("symbol") or item.get("name")
+        if raw_key is None:
+            continue
+        raw_key_str = str(raw_key).strip()
+        if not raw_key_str:
+            continue
+        raw_val = item.get("value")
+        val = _parse_numeric_value(raw_val)
+        if val is None:
+            continue
+        clean_key = _clean_key(raw_key_str)
+        token = None
+        if clean_key in tokens:
+            token = clean_key
+        else:
+            norm = _norm_key(raw_key_str)
+            token = token_map.get(norm)
+            if token is None:
+                token = token_map_no_us.get(_norm_key_no_us(raw_key_str))
+        if token:
+            known_vals[token] = val
+
+    eq_map: Dict[str, sp.Eq] = {}
+    vars_map: Dict[str, List[str]] = {}
+    for qid, expr_str in exprs.items():
+        try:
+            eq = _parse_equation(expr_str, symtab)
+        except Exception:
+            continue
+        eq_map[qid] = eq
+        vars_map[qid] = _symbols_in_equation(eq, symtab)
+
+    solved: Dict[str, float] = {}
+    pending = set(eq_map.keys())
+    for _ in range(max_steps):
+        progressed = False
+        for qid in list(pending):
+            vars_in_eq = vars_map.get(qid, [])
+            if qid not in vars_in_eq:
+                pending.remove(qid)
+                continue
+            required = set(vars_in_eq) - {qid}
+            if not required.issubset(known_vals.keys()):
+                continue
+            try:
+                known_for_solve = {k: v for k, v in known_vals.items() if k != qid}
+                val = solve_one(eq_map[qid], known_for_solve, qid, symtab)
+            except Exception:
+                continue
+            solved[qid] = val
+            known_vals[qid] = val
+            pending.remove(qid)
+            progressed = True
+        if not progressed:
+            break
+
+    target_keys: List[str] = []
+    seen_keys: set[str] = set()
+    for qid in targets or []:
+        if qid not in seen_keys:
+            target_keys.append(qid)
+            seen_keys.add(qid)
+    for qid in formula_overrides.keys():
+        if qid not in seen_keys:
+            target_keys.append(qid)
+            seen_keys.add(qid)
+
+    quantity_results: Dict[str, List[Dict[str, Any]]] = {qid: [] for qid in target_keys}
+    for qid in target_keys:
+        if qid not in formula_overrides:
+            continue
+        override = formula_overrides.get(qid)
+        if isinstance(override, dict):
+            out = dict(override)
+        else:
+            out = {"expr": str(override)}
+        val = solved.get(qid)
+        out["quantity_value"] = _fmt_quantity_value(val) if val is not None else ""
+        quantity_results[qid] = [out]
+
+    missing_formula_qids = [qid for qid, items in quantity_results.items() if not items]
+    results = {category: {extractid: quantity_results}}
+
+    return _wrap_latex({
+        "status": "ok",
+        "filters": {
+            "category": category,
+            "extractid": extractid,
+            "extractid_matched": True,
+        },
+        "formulas_path": _FORMULAS_DIR,
+        "quantity_ids": target_keys,
+        "missing_quantity_ids": list(missing_formula_qids),
+        "missing_quantity_inputs": [],
+        "missing_formula_quantity_ids": list(missing_formula_qids),
+        "quantity_id_resolved": {},
+        "quantity_id_ambiguous": {},
+        "results": results,
+    })
 
 
 # =========================
@@ -1269,10 +1396,14 @@ def find_formulas_by_quantities(
         })
 
     quantities = load_all_quantities(_QUANTITIES_DIR)
-    existing_qids = [qid for qid in quantity_ids if qid in quantities]
-    missing_qids = [qid for qid in quantity_ids if qid not in quantities]
+    resolved_ids, unresolved_inputs, resolved_map, ambiguous_map = _resolve_quantity_inputs(
+        [str(x) for x in quantity_ids],
+        quantities,
+    )
+    existing_qids = [qid for qid in resolved_ids if qid in quantities]
+    missing_qids = [qid for qid in unresolved_inputs if qid not in quantities]
 
-    if not existing_qids:
+    if not existing_qids and not missing_qids:
         return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITY_NOT_FOUND",
@@ -1321,21 +1452,32 @@ def find_formulas_by_quantities(
                     "extractid": list(f.extractid),
                 })
 
+    # Distinguish missing formulas vs missing quantities
+    missing_formula_qids = [qid for qid, items in quantity_results.items() if not items]
+
     # LLM fill: add missing quantity_ids as new keys under results.
     # Can be disabled via env var for offline use.
-    if missing_qids and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
+    if (missing_qids or missing_formula_qids) and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
         try:
             llm_blocks = _llm_fill_missing_quantities_cached(
                 category,
                 extractid,
-                tuple(missing_qids),
+                tuple(list(missing_qids) + list(missing_formula_qids)),
                 _dir_fingerprint(_FORMULAS_DIR),
                 _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
                 _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
             )
             for qid, formulas_list in (llm_blocks or {}).items():
                 if isinstance(formulas_list, list):
-                    quantity_results[qid] = [
+                    target_key = qid
+                    # If LLM provides a concrete symbol/id, use it as the result key.
+                    for it in formulas_list:
+                        if isinstance(it, dict):
+                            sym = str(it.get("quantity_symbol") or "").strip()
+                            if sym:
+                                target_key = sym
+                                break
+                    quantity_results[target_key] = [
                         {
                             "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
                             "quantity_value": "",
@@ -1346,10 +1488,10 @@ def find_formulas_by_quantities(
                     ]
         except Exception:
             # Keep response stable even if LLM fails.
-            for qid in missing_qids:
+            for qid in missing_qids + missing_formula_qids:
                 quantity_results.setdefault(qid, [])
     else:
-        for qid in missing_qids:
+        for qid in missing_qids + missing_formula_qids:
             quantity_results.setdefault(qid, [])
 
     # Deduplicate: for each quantity's formulas, if multiple entries share the same expr,
@@ -1410,6 +1552,10 @@ def find_formulas_by_quantities(
         },
         "formulas_path": _FORMULAS_DIR,
         "quantity_ids": existing_qids,
-        "missing_quantity_ids": missing_qids,
+        "missing_quantity_ids": missing_qids + missing_formula_qids,
+        "missing_quantity_inputs": missing_qids,
+        "missing_formula_quantity_ids": missing_formula_qids,
+        "quantity_id_resolved": resolved_map,
+        "quantity_id_ambiguous": ambiguous_map,
         "results": results,
     })

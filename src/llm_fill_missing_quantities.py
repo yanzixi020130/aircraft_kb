@@ -23,7 +23,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 from llm_client import LLMClient, LLMConfig
 
@@ -112,6 +112,7 @@ def build_reference_corpus(
 # ==================== Prompt ====================
 _PROMPT_TEMPLATE = """
 你是航空航天/飞行器设计领域的公式抽取与建模专家。
+Note: missing_quantity_ids may be quantity ids or Chinese names (name_zh). If a missing id looks like name_zh, keep name_zh and choose a reasonable id/symbol.
 
 现在知识库中缺少以下物理量，需要你根据 data/raw 的资料（已优先提供 Markdown 片段）补齐：
 1) 该物理量自身的信息（等价于 quantities.yaml 的一条记录）
@@ -172,6 +173,95 @@ _PROMPT_TEMPLATE = """
 """.strip()
 
 
+_QUANTITY_ONLY_PROMPT = """
+You are filling missing quantity definitions. Only output quantity fields, no formulas.
+missing_quantity_ids may be quantity ids or Chinese names (name_zh). If a missing id looks like name_zh, keep name_zh and choose a reasonable id/symbol.
+
+Output a pure JSON object with this shape:
+{
+  "<missing_quantity_id>": {
+    "quantity": {
+      "id": "...",
+      "symbol": "...",
+      "symbol_latex": "...",
+      "name_zh": "...",
+      "unit": "SI unit or '1'"
+    }
+  }
+}
+
+Context:
+- category: {category}
+- extractid: {extractid}
+- missing_quantity_ids: {missing_quantity_ids}
+""".strip()
+
+
+_FORMULA_ONLY_PROMPT = """
+Generate formulas for the missing quantities below. Use the provided quantity specs.
+Return pure JSON. Each key must be an input id, and include "formulas" only.
+
+Quantity specs:
+{quantity_specs}
+
+Allowed formula ids (must reuse, do not invent):
+{allowed_formula_ids}
+
+Existing formula examples (style reference only):
+{existing_formula_examples}
+
+Reference corpus:
+{reference_corpus}
+
+Context:
+- category: {category}
+- extractid: {extractid}
+- missing_quantity_ids: {missing_quantity_ids}
+
+Output JSON:
+{
+  "<missing_quantity_id>": {
+    "formulas": [
+      {
+        "formula_id": "...",
+        "formula_name_zh": "... (mark 推断/候选 when needed)",
+        "expr": "...",
+        "latex": "...",
+        "source": "llm"
+      }
+    ]
+  }
+}
+""".strip()
+
+
+def _chunk_list(items: List[str], size: int) -> List[List[str]]:
+    if size <= 0:
+        return [items]
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
+def _call_llm_json(
+    llm: LLMClient,
+    prompt: str,
+    *,
+    retries: int,
+) -> Dict[str, Any]:
+    last_err: Exception | None = None
+    for _ in range(retries + 1):
+        text = llm.completion_text(user_prompt=prompt, system_prompt="你是一位严谨的公式抽取与建模专家。")
+        if not text:
+            last_err = ValueError("empty response")
+            continue
+        try:
+            return _extract_json_obj(text)
+        except Exception as exc:
+            last_err = exc
+    if last_err:
+        raise last_err
+    raise ValueError("LLM JSON parse failed")
+
+
 def _format_existing_examples(formulas: List[Dict[str, Any]], *, limit: int = 20) -> str:
     rows = []
     for f in formulas[:limit]:
@@ -213,26 +303,37 @@ def generate_missing_quantity_formulas(
     seen = set()
     allowed_ids = [x for x in allowed_ids if not (x in seen or seen.add(x))]
 
-    reference_corpus = build_reference_corpus(raw_dir=raw_dir, md_dir=md_dir)
-    prompt = _PROMPT_TEMPLATE.format(
-        category=category,
-        extractid=extractid,
-        missing_quantity_ids=json.dumps(missing_quantity_ids, ensure_ascii=False),
-        existing_formula_examples=_format_existing_examples(existing_formula_examples),
-        reference_corpus=reference_corpus,
-        allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
+    batch_size = int(os.getenv("LLM_MISSING_BATCH_SIZE", "6"))
+    formula_batch_size = int(os.getenv("LLM_MISSING_FORMULA_BATCH_SIZE", str(batch_size)))
+    retries = int(os.getenv("LLM_MISSING_RETRIES", "2"))
+    max_total_chars = int(os.getenv("LLM_MISSING_MAX_TOTAL_CHARS", "20000"))
+    per_file_chars = int(os.getenv("LLM_MISSING_PER_FILE_CHARS", "1500"))
+    allowed_id_limit = int(os.getenv("LLM_MISSING_ALLOWED_ID_LIMIT", "120"))
+    if allowed_id_limit > 0 and len(allowed_ids) > allowed_id_limit:
+        allowed_ids = allowed_ids[:allowed_id_limit]
+
+    reference_corpus = build_reference_corpus(
+        raw_dir=raw_dir,
+        md_dir=md_dir,
+        max_total_chars=max_total_chars,
+        per_file_chars=per_file_chars,
     )
 
-    text = llm.completion_text(user_prompt=prompt, system_prompt="你是一位严谨的公式抽取与建模专家。")
-    obj = _extract_json_obj(text)
-
-    def _normalize_quantity_spec(qid: str, spec: Dict[str, Any] | None) -> Dict[str, Any]:
+    def _normalize_quantity_spec(
+        qid: str,
+        spec: Dict[str, Any] | None,
+        *,
+        fallback: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         spec = spec or {}
-        _id = str(spec.get("id") or qid)
-        symbol = str(spec.get("symbol") or _id)
-        symbol_latex = str(spec.get("symbol_latex") or symbol)
-        name_zh = str(spec.get("name_zh") or "")
-        unit = str(spec.get("unit") or "1")
+        fallback = fallback or {}
+        _id = str(spec.get("id") or fallback.get("id") or qid)
+        symbol = str(spec.get("symbol") or fallback.get("symbol") or _id)
+        symbol_latex = str(spec.get("symbol_latex") or fallback.get("symbol_latex") or symbol)
+        name_zh = str(spec.get("name_zh") or fallback.get("name_zh") or "")
+        if not name_zh and re.search(r"[\u4e00-\u9fff]", str(qid)):
+            name_zh = str(qid)
+        unit = str(spec.get("unit") or fallback.get("unit") or "1")
         return {
             "id": _id,
             "symbol": symbol,
@@ -241,23 +342,112 @@ def generate_missing_quantity_formulas(
             "unit": unit,
         }
 
+    def _fetch_quantity_specs(ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        prompt = _QUANTITY_ONLY_PROMPT.format(
+            category=category,
+            extractid=extractid,
+            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
+        )
+        obj = _call_llm_json(llm, prompt, retries=retries)
+        out: Dict[str, Dict[str, Any]] = {}
+        for qid in ids:
+            block = obj.get(qid, {})
+            qspec = block.get("quantity") if isinstance(block, dict) else {}
+            if not isinstance(qspec, dict):
+                qspec = {}
+            out[qid] = qspec
+        return out
+
+    def _fill_quantity_specs(ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        try:
+            return _fetch_quantity_specs(ids)
+        except Exception:
+            if len(ids) > 1:
+                mid = len(ids) // 2
+                left = _fill_quantity_specs(ids[:mid])
+                right = _fill_quantity_specs(ids[mid:])
+                return {**left, **right}
+            return {ids[0]: {}}
+
+    quantity_specs: Dict[str, Dict[str, Any]] = {}
+    for batch in _chunk_list(missing_quantity_ids, batch_size):
+        quantity_specs.update(_fill_quantity_specs(batch))
+
+    def _fetch_formulas(ids: List[str]) -> Dict[str, Any]:
+        specs_payload = {
+            qid: {"quantity": quantity_specs.get(qid, {})}
+            for qid in ids
+        }
+        prompt = _FORMULA_ONLY_PROMPT.format(
+            category=category,
+            extractid=extractid,
+            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
+            quantity_specs=json.dumps(specs_payload, ensure_ascii=False, indent=2),
+            existing_formula_examples=_format_existing_examples(existing_formula_examples, limit=12),
+            reference_corpus=reference_corpus,
+            allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
+        )
+        return _call_llm_json(llm, prompt, retries=retries)
+
+    def _fill_formulas(ids: List[str]) -> Dict[str, Any]:
+        try:
+            return _fetch_formulas(ids)
+        except Exception:
+            if len(ids) > 1:
+                mid = len(ids) // 2
+                left = _fill_formulas(ids[:mid])
+                right = _fill_formulas(ids[mid:])
+                return {**left, **right}
+            return {ids[0]: {}}
+
+    def _fetch_combined(ids: List[str]) -> Dict[str, Any]:
+        prompt = _PROMPT_TEMPLATE.format(
+            category=category,
+            extractid=extractid,
+            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
+            existing_formula_examples=_format_existing_examples(existing_formula_examples, limit=12),
+            reference_corpus=reference_corpus,
+            allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
+        )
+        return _call_llm_json(llm, prompt, retries=retries)
+
+    formulas_obj: Dict[str, Any] = {}
+    for batch in _chunk_list(missing_quantity_ids, formula_batch_size):
+        formulas_obj.update(_fill_formulas(batch))
+
     # normalize + enforce source + enforce formula_id reuse
     out: Dict[str, List[Dict[str, Any]]] = {}
     for qid in missing_quantity_ids:
-        block = obj.get(qid, {})
+        block = formulas_obj.get(qid, {})
         quantity_spec_raw = None
         items = []
 
-        # 支持两种兼容格式：
-        # 1) 新格式：{ qid: { quantity: {...}, formulas: [...] } }
-        # 2) 旧格式：{ qid: [ {...}, {...} ] }
+        # ?????????
+        # 1) ????{ qid: { quantity: {...}, formulas: [...] } }
+        # 2) ????{ qid: [ {...}, {...} ] }
         if isinstance(block, dict):
             quantity_spec_raw = block.get("quantity") if isinstance(block.get("quantity"), dict) else None
             items = block.get("formulas") if isinstance(block.get("formulas"), list) else []
         elif isinstance(block, list):
             items = block
 
-        quantity_spec = _normalize_quantity_spec(qid, quantity_spec_raw)
+        if not items:
+            try:
+                combined = _fetch_combined([qid])
+                block2 = combined.get(qid, {})
+                if isinstance(block2, dict):
+                    quantity_spec_raw = block2.get("quantity") if isinstance(block2.get("quantity"), dict) else quantity_spec_raw
+                    items = block2.get("formulas") if isinstance(block2.get("formulas"), list) else items
+                elif isinstance(block2, list):
+                    items = block2
+            except Exception:
+                pass
+
+        quantity_spec = _normalize_quantity_spec(
+            qid,
+            quantity_spec_raw,
+            fallback=quantity_specs.get(qid),
+        )
 
         normalized: List[Dict[str, Any]] = []
         for idx, it in enumerate(items, start=1):
@@ -281,7 +471,7 @@ def generate_missing_quantity_formulas(
                     "quantity_unit": quantity_spec.get("unit", "1"),
                     "quantity_value": "",
                     "formula_id": formula_id,
-                    "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} 候选公式"),
+                    "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} ????"),
                     "expr": str(it.get("expr") or ""),
                     "latex": str(it.get("latex") or ""),
                     "source": "llm",
