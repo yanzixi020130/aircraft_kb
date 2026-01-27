@@ -53,7 +53,7 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
+    - plane_design
   - id: F_wingspan_from_aspect_ratio_area
     name_zh: 翼展与展弦比及机翼面积关系
     expr: B = (A * Swing) ^ 0.5
@@ -162,20 +162,17 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_thrust_to_weight_from_max_speed_drag
     name_zh: 最大速度条件下推重比需求公式
     expr: TW = 0.5 * rhoc * Vmax^2 * CD / WS
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_wing_loading_from_stall_speed
     name_zh: 失速速度约束下的翼载荷计算公式
     expr: WS = 0.5 * rhoc * Vs^2 * CLmax
     category: tilt_rotor
     extractid:
-    - Flight_Performance_Analysis_Extraction_Parameters
     - Overall_Parameter_Extraction_Parameters
   - id: F_wing_loading_from_drag_min_condition
     name_zh: 最小阻力条件下的翼载荷公式
@@ -183,7 +180,6 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_wing_weight_estimation
     name_zh: 机翼重量经验估算公式
     expr: Wwing = 3.9e-4 * Nz * W0 * A * Swing^0.48 * (cos(LambdaLE))^(-1.52) * (tc)^(-0.52)
@@ -209,14 +205,12 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_time_over_specific_energy_equivalent_sigma
     name_zh: 工作时间与电池比能量的等效关系公式
     expr: time / Ebatstar = 1 / sigmadczh
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_single_propeller_vertical_acceleration_thrust
     name_zh: 单个螺旋桨垂直加速所需拉力公式
     expr: Tla = (W0 / np) * (g + a)
@@ -260,7 +254,6 @@ formulas:
     category: tilt_rotor
     extractid:
     - Flight_Performance_Analysis_Extraction_Parameters
-    - Overall_Parameter_Extraction_Parameters
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 巡航状态所需功率计算公式
     expr: Pvc = (W0 * g / Kvc) * Vc

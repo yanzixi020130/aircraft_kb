@@ -122,10 +122,7 @@ def api_solve_targets_auto(
         extractid=payload.extractid,
         known_inputs=payload.known_inputs,
         targets=payload.targets,
-        formula_overrides=payload.formula_overrides,
-        max_steps=payload.max_steps,
-        taskid=payload.taskid,
-        formula_key=payload.formulaKey,
+        formula_overrides=payload.formula_overrides
     )
 
 

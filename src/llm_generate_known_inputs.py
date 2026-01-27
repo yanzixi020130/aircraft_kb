@@ -538,6 +538,18 @@ def _split_value_unit(text: str) -> Tuple[str, str | None]:
     return s, None
 
 
+def _format_source_label(source: str, source_file: str | None = None) -> str:
+    raw = str(source or "")
+    norm = raw.strip().lower()
+    if norm == "expert":
+        return "专家知识"
+    if norm == "llm":
+        return "大模型生成"
+    if norm == "thesis":
+        return source_file or raw or "thesis"
+    return raw
+
+
 def generate_known_inputs_response(
     payload: Dict,
     *,
@@ -627,7 +639,7 @@ def generate_known_inputs_response(
                 "value": val_str,
                 "unit": unit_str,
                 "context": context,
-                "source": (spec and cat) or "llm",
+                "source": _format_source_label((spec and cat) or "llm"),
             }
         )
 
