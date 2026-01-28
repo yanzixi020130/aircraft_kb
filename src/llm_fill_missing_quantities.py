@@ -1,19 +1,15 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""LLM helper: generate formulas for missing quantity_ids.
+"""LLM helper: generate missing quantity specs.
 
 Goal:
-- Given missing quantity ids, generate a mapping:
-    { "K_max": [ {formula_id, formula_name_zh, expr, latex, source:"llm"}, ... ], ... }
+- Given missing quantity names (Chinese), generate quantity specs:
+    { "<missing_name_zh>": {"quantity": {id, symbol, symbol_latex, name_zh, unit}} }
 
 Reference context:
-- Use ALL PDFs under data/raw as reference. Practically we prefer to read already-extracted
-  Markdown under data/md/<stem>/<stem>.md (if present). If MD is missing, we still include
-  the PDF filename.
-
-This module is intentionally lightweight and can be used both as:
-- library import from engine.py
-- standalone CLI for debugging
+- Use ALL PDFs under data/raw as reference. Prefer extracted Markdown under
+  data/md/<stem>/<stem>.md (if present). If MD is missing, still include the
+  PDF filename.
 """
 
 from __future__ import annotations
@@ -21,9 +17,8 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 from llm_client import LLMClient, LLMConfig
 
@@ -73,14 +68,10 @@ def build_reference_corpus(
     *,
     raw_dir: str,
     md_dir: str,
-    max_total_chars: int = 30000,
-    per_file_chars: int = 2000,
+    max_total_chars: int = 20000,
+    per_file_chars: int = 1500,
 ) -> str:
-    """Build a bounded reference corpus string.
-
-    Note: requirement says "use all PDFs"; we include all filenames, and include
-    extracted MD excerpts when available, bounded by max_total_chars.
-    """
+    """Build a bounded reference corpus string."""
     raw_root = Path(raw_dir)
     md_root = Path(md_dir)
     pdfs = _iter_pdfs(raw_root)
@@ -103,135 +94,76 @@ def build_reference_corpus(
         budget -= len(block)
 
     header = (
-        "以下是 data/raw 下 PDF 的参考信息（优先使用已抽取的 Markdown 片段；若缺失则只提供文件名）。\n"
-        f"总PDF数: {len(pdfs)}，已包含片段数: {len(chunks)}，已做长度截断。\n\n"
+        "以下是 data/raw 中 PDF 的参考信息（优先使用已抽取的 Markdown 片段；若缺失则只提供文件名）。\n"
+        f"总 PDF 数: {len(pdfs)}，已包含片段数: {len(chunks)}，已做长度截断。\n\n"
     )
     return header + "\n".join(chunks)
 
 
 # ==================== Prompt ====================
 _PROMPT_TEMPLATE = """
-你是航空航天/飞行器设计领域的公式抽取与建模专家。
-Note: missing_quantity_ids may be quantity ids or Chinese names (name_zh). If a missing id looks like name_zh, keep name_zh and choose a reasonable id/symbol.
+你是航空航天/飞行器设计领域的物理量知识建库专家。
+现在物理量库中缺少以下物理量，请根据资料补全每个物理量的定义信息。
 
-现在知识库中缺少以下物理量，需要你根据 data/raw 的资料（已优先提供 Markdown 片段）补齐：
-1) 该物理量自身的信息（等价于 quantities.yaml 的一条记录）
-2) 该物理量可能对应的公式列表
+[任务]
+- 必须覆盖所有 missing_quantity_name_zh，不得遗漏。
+- 对每个缺失量，给出 id / symbol / symbol_latex / name_zh / unit。
+- id / symbol / symbol_latex 必须是简短的拉丁字母/数字/下划线组合，禁止直接使用中文。
+- symbol_latex 允许下标，例如 V_{{tip,h}}、S_{{ref}}。
+- name_zh 必须等于输入的中文名称。
+- 若资料不足，允许保守推断，但字段不得留空。
+- unit 使用 SI 单位；无量纲写 "1"。
+- 输出必须为合法 JSON 对象。
 
-【任务】
-- 必须覆盖所有 missing_quantity_id，不得遗漏；即使资料不足也要给出该物理量信息并补齐 3~5 条候选公式。
-- 对每个 missing_quantity_id，先给出该物理量的定义（id/symbol/symbol_latex/name_zh/unit），再给出 3~5 条可能的公式（少于 3 条视为无效输出，务必补足）。
-- 公式必须尽量引用资料中出现过的符号/变量，不要凭空臆造；如资料不足，请给出最保守的候选，并在 formula_name_zh 里标注“推断/候选”。
-- 若缺少可靠资料，仍需输出：unit 用保守的 SI/1，公式列表可以复用【允许的 formula_id 列表】按序循环；所有字段不可留空。
-- 输出必须是“合法 JSON 对象”，其中 key 是 missing_quantity_id，value 是一个对象，包含字段 quantity 与 formulas。
+[示例]
+输入:
+["展弦比", "旋翼桨尖速度（直升机模式）"]
+输出:
+{{
+    "展弦比": {{
+        "quantity": {{
+            "id": "AR",
+            "symbol": "AR",
+            "symbol_latex": "AR",
+            "name_zh": "展弦比",
+            "unit": "1"
+        }}
+    }},
+    "旋翼桨尖速度（直升机模式）": {{
+        "quantity": {{
+            "id": "V_tip_h",
+            "symbol": "V_tip_h",
+            "symbol_latex": "V_{{tip,h}}",
+            "name_zh": "旋翼桨尖速度（直升机模式）",
+            "unit": "m/s"
+        }}
+    }}
+}}
 
-【输出 JSON 结构（必须严格遵守）】
+[输出 JSON 结构]
 ```
 {{
-    "<missing_quantity_id>": {{
+    "<missing_quantity_name_zh>": {{
         "quantity": {{
-            "id": "与 missing_quantity_id 相同或同义映射",
-            "symbol": "变量符号（如 g）",
-            "symbol_latex": "LaTeX 符号（如 g）",
-            "name_zh": "物理量中文名",
-            "unit": "SI 单位，无量纲用 '1'"
-        }},
-        "formulas": [
-            {{
-                "formula_id": "必须从【允许的 formula_id 列表】选择，不得新增",
-                "formula_name_zh": "公式中文名（若推断需标注候选）",
-                "expr": "等式文本，如 L = q * Swing * CL",
-                "latex": "$...$ 形式",
-                "source": "llm"
-            }}
-        ]
+            "id": "...",
+            "symbol": "...",
+            "symbol_latex": "...",
+            "name_zh": "...",
+            "unit": "..."
+        }}
     }}
 }}
 ```
 
-【字段要求】
-- quantity.id 应尽量与 missing_quantity_id 一致；若需映射同义写法，可做轻微规范化。
-- unit 使用 SI；无量纲用 '1'。
-- formulas[*] 数组长度必须 3~5；不足 3 条视为无效输出。
-- formulas[*].formula_id 必须严格复用【允许的 formula_id 列表】，不得新增、改写或加后缀。
-
-【允许的 formula_id 列表（只能从这里选）】
-{allowed_formula_ids}
-
-【上下文】
+[上下文]
 - category: {category}
 - extractid: {extractid}
-- missing_quantity_ids: {missing_quantity_ids}
+- missing_quantity_name_zh: {missing_quantity_name_zh}
 
-【已有公式示例（仅供风格参考）】
-{existing_formula_examples}
-
-【PDF 参考资料】
+[PDF 参考资料]
 {reference_corpus}
 
 只输出 JSON，不要输出解释文字。
-""".strip()
-
-
-_QUANTITY_ONLY_PROMPT = """
-You are filling missing quantity definitions. Only output quantity fields, no formulas.
-missing_quantity_ids may be quantity ids or Chinese names (name_zh). If a missing id looks like name_zh, keep name_zh and choose a reasonable id/symbol.
-
-Output a pure JSON object with this shape:
-{
-  "<missing_quantity_id>": {
-    "quantity": {
-      "id": "...",
-      "symbol": "...",
-      "symbol_latex": "...",
-      "name_zh": "...",
-      "unit": "SI unit or '1'"
-    }
-  }
-}
-
-Context:
-- category: {category}
-- extractid: {extractid}
-- missing_quantity_ids: {missing_quantity_ids}
-""".strip()
-
-
-_FORMULA_ONLY_PROMPT = """
-Generate formulas for the missing quantities below. Use the provided quantity specs.
-Return pure JSON. Each key must be an input id, and include "formulas" only.
-
-Quantity specs:
-{quantity_specs}
-
-Allowed formula ids (must reuse, do not invent):
-{allowed_formula_ids}
-
-Existing formula examples (style reference only):
-{existing_formula_examples}
-
-Reference corpus:
-{reference_corpus}
-
-Context:
-- category: {category}
-- extractid: {extractid}
-- missing_quantity_ids: {missing_quantity_ids}
-
-Output JSON:
-{
-  "<missing_quantity_id>": {
-    "formulas": [
-      {
-        "formula_id": "...",
-        "formula_name_zh": "... (mark 推断/候选 when needed)",
-        "expr": "...",
-        "latex": "...",
-        "source": "llm"
-      }
-    ]
-  }
-}
 """.strip()
 
 
@@ -246,71 +178,95 @@ def _call_llm_json(
     prompt: str,
     *,
     retries: int,
+    debug: bool = False,
 ) -> Dict[str, Any]:
     last_err: Exception | None = None
-    for _ in range(retries + 1):
-        text = llm.completion_text(user_prompt=prompt, system_prompt="你是一位严谨的公式抽取与建模专家。")
+    for i in range(retries + 1):
+        # print(f"[llm_fill_missing_quantities] call LLM, try {i+1}/{retries+1}")
+        text = llm.completion_text(
+            user_prompt=prompt,
+            system_prompt="你是一个严格的物理量知识建库专家。",
+        )
+        # print("[llm_fill_missing_quantities] raw response:", repr(text))
+        if debug:
+            pass
+            # print("[llm_fill_missing_quantities] raw response (debug):", repr(text))
         if not text:
+            # print("[llm_fill_missing_quantities] LLM returned empty response!")
             last_err = ValueError("empty response")
             continue
         try:
             return _extract_json_obj(text)
         except Exception as exc:
+            # print("[llm_fill_missing_quantities] json parse error:", repr(exc))
             last_err = exc
+            if debug:
+                pass
+                # print("[llm_fill_missing_quantities] json parse error (debug):", repr(exc))
     if last_err:
+        # print("[llm_fill_missing_quantities] raise last_err:", repr(last_err))
         raise last_err
+    # print("[llm_fill_missing_quantities] LLM JSON parse failed!")
     raise ValueError("LLM JSON parse failed")
 
 
-def _format_existing_examples(formulas: List[Dict[str, Any]], *, limit: int = 20) -> str:
-    rows = []
-    for f in formulas[:limit]:
-        rows.append({
-            "formula_id": f.get("formula_id"),
-            "formula_name_zh": f.get("formula_name_zh"),
-            "expr": f.get("expr"),
-            "source": f.get("source"),
-        })
-    return json.dumps(rows, ensure_ascii=False, indent=2)
+def _normalize_quantity_spec(name_zh: str, spec: Dict[str, Any]) -> Dict[str, Any]:
+    spec = spec or {}
+    _id = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
+    symbol = str(spec.get("symbol") or _id).strip()
+    symbol_latex = str(spec.get("symbol_latex") or symbol).strip()
+    zh = str(spec.get("name_zh") or "").strip()
+    if re.search(r"[\u4e00-\u9fff]", str(name_zh)):
+        zh = str(name_zh)
+    elif not zh:
+        zh = _id
+    unit = str(spec.get("unit") or "1").strip() or "1"
+    return {
+        "id": _id,
+        "symbol": symbol,
+        "symbol_latex": symbol_latex,
+        "name_zh": zh,
+        "unit": unit,
+    }
 
 
-def generate_missing_quantity_formulas(
+def generate_missing_quantities(
     *,
     category: str,
     extractid: str,
-    missing_quantity_ids: List[str],
-    existing_formula_examples: List[Dict[str, Any]],
+    missing_quantity_name_zh: List[str],
     raw_dir: str,
     md_dir: str,
     llm_cfg: LLMConfig | None = None,
-    allowed_formula_ids: List[str] | None = None,
-) -> Dict[str, List[Dict[str, Any]]]:
-    """Generate formula blocks for missing quantities.
+    key_mode: str = "name_zh",
+) -> Dict[str, Dict[str, Any]]:
+    """Generate quantity specs for missing quantities.
 
-    Returns a dict mapping missing qid -> list of formula dicts.
+    Returns a dict mapping missing name_zh -> quantity spec dict.
     """
-    if not missing_quantity_ids:
+
+    # print("[llm_fill_missing_quantities] generate_missing_quantities called")
+    # print("  category:", category)
+    # print("  extractid:", extractid)
+    # print("  missing_quantity_name_zh:", missing_quantity_name_zh)
+    # print("  raw_dir:", raw_dir)
+    # print("  md_dir:", md_dir)
+    # print("  llm_cfg:", llm_cfg)
+    # print("  key_mode:", key_mode)
+
+    if not missing_quantity_name_zh:
+        print("[llm_fill_missing_quantities] missing_quantity_name_zh is empty, return {}")
         return {}
 
+    # print("[llm_fill_missing_quantities] before LLMClient init")
     llm = LLMClient(llm_cfg or LLMConfig())
+    # print("[llm_fill_missing_quantities] LLMClient init success:", llm)
 
-    allowed_ids = [x for x in (allowed_formula_ids or []) if isinstance(x, str) and x.strip()]
-    # If caller doesn't pass allowed ids, fall back to using ids from examples.
-    if not allowed_ids:
-        allowed_ids = [x.get("formula_id") for x in (existing_formula_examples or []) if isinstance(x, dict)]
-        allowed_ids = [x for x in allowed_ids if isinstance(x, str) and x.strip()]
-    # De-duplicate but keep order
-    seen = set()
-    allowed_ids = [x for x in allowed_ids if not (x in seen or seen.add(x))]
-
-    batch_size = int(os.getenv("LLM_MISSING_BATCH_SIZE", "6"))
-    formula_batch_size = int(os.getenv("LLM_MISSING_FORMULA_BATCH_SIZE", str(batch_size)))
+    batch_size = int(os.getenv("LLM_MISSING_QUANTITY_BATCH_SIZE", "6"))
     retries = int(os.getenv("LLM_MISSING_RETRIES", "2"))
     max_total_chars = int(os.getenv("LLM_MISSING_MAX_TOTAL_CHARS", "20000"))
     per_file_chars = int(os.getenv("LLM_MISSING_PER_FILE_CHARS", "1500"))
-    allowed_id_limit = int(os.getenv("LLM_MISSING_ALLOWED_ID_LIMIT", "120"))
-    if allowed_id_limit > 0 and len(allowed_ids) > allowed_id_limit:
-        allowed_ids = allowed_ids[:allowed_id_limit]
+    debug = os.getenv("LLM_MISSING_DEBUG", "0") == "1"
 
     reference_corpus = build_reference_corpus(
         raw_dir=raw_dir,
@@ -318,177 +274,77 @@ def generate_missing_quantity_formulas(
         max_total_chars=max_total_chars,
         per_file_chars=per_file_chars,
     )
+    # print("[llm_fill_missing_quantities] reference_corpus preview:", reference_corpus[:300], "...")
 
-    def _normalize_quantity_spec(
-        qid: str,
-        spec: Dict[str, Any] | None,
-        *,
-        fallback: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
-        spec = spec or {}
-        fallback = fallback or {}
-        _id = str(spec.get("id") or fallback.get("id") or qid)
-        symbol = str(spec.get("symbol") or fallback.get("symbol") or _id)
-        symbol_latex = str(spec.get("symbol_latex") or fallback.get("symbol_latex") or symbol)
-        name_zh = str(spec.get("name_zh") or fallback.get("name_zh") or "")
-        if not name_zh and re.search(r"[\u4e00-\u9fff]", str(qid)):
-            name_zh = str(qid)
-        unit = str(spec.get("unit") or fallback.get("unit") or "1")
-        return {
-            "id": _id,
-            "symbol": symbol,
-            "symbol_latex": symbol_latex,
-            "name_zh": name_zh,
-            "unit": unit,
-        }
-
-    def _fetch_quantity_specs(ids: List[str]) -> Dict[str, Dict[str, Any]]:
-        prompt = _QUANTITY_ONLY_PROMPT.format(
-            category=category,
-            extractid=extractid,
-            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
-        )
-        obj = _call_llm_json(llm, prompt, retries=retries)
-        out: Dict[str, Dict[str, Any]] = {}
-        for qid in ids:
-            block = obj.get(qid, {})
-            qspec = block.get("quantity") if isinstance(block, dict) else {}
-            if not isinstance(qspec, dict):
-                qspec = {}
-            out[qid] = qspec
-        return out
-
-    def _fill_quantity_specs(ids: List[str]) -> Dict[str, Dict[str, Any]]:
-        try:
-            return _fetch_quantity_specs(ids)
-        except Exception:
-            if len(ids) > 1:
-                mid = len(ids) // 2
-                left = _fill_quantity_specs(ids[:mid])
-                right = _fill_quantity_specs(ids[mid:])
-                return {**left, **right}
-            return {ids[0]: {}}
-
-    quantity_specs: Dict[str, Dict[str, Any]] = {}
-    for batch in _chunk_list(missing_quantity_ids, batch_size):
-        quantity_specs.update(_fill_quantity_specs(batch))
-
-    def _fetch_formulas(ids: List[str]) -> Dict[str, Any]:
-        specs_payload = {
-            qid: {"quantity": quantity_specs.get(qid, {})}
-            for qid in ids
-        }
-        prompt = _FORMULA_ONLY_PROMPT.format(
-            category=category,
-            extractid=extractid,
-            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
-            quantity_specs=json.dumps(specs_payload, ensure_ascii=False, indent=2),
-            existing_formula_examples=_format_existing_examples(existing_formula_examples, limit=12),
-            reference_corpus=reference_corpus,
-            allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
-        )
-        return _call_llm_json(llm, prompt, retries=retries)
-
-    def _fill_formulas(ids: List[str]) -> Dict[str, Any]:
-        try:
-            return _fetch_formulas(ids)
-        except Exception:
-            if len(ids) > 1:
-                mid = len(ids) // 2
-                left = _fill_formulas(ids[:mid])
-                right = _fill_formulas(ids[mid:])
-                return {**left, **right}
-            return {ids[0]: {}}
-
-    def _fetch_combined(ids: List[str]) -> Dict[str, Any]:
+    def _fetch_batch(names: List[str]) -> Dict[str, Dict[str, Any]]:
+        # print(f"[llm_fill_missing_quantities] _fetch_batch called, names={names}")
         prompt = _PROMPT_TEMPLATE.format(
             category=category,
             extractid=extractid,
-            missing_quantity_ids=json.dumps(ids, ensure_ascii=False),
-            existing_formula_examples=_format_existing_examples(existing_formula_examples, limit=12),
+            missing_quantity_name_zh=json.dumps(names, ensure_ascii=False),
             reference_corpus=reference_corpus,
-            allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
         )
-        return _call_llm_json(llm, prompt, retries=retries)
-
-    formulas_obj: Dict[str, Any] = {}
-    for batch in _chunk_list(missing_quantity_ids, formula_batch_size):
-        formulas_obj.update(_fill_formulas(batch))
-
-    # normalize + enforce source + enforce formula_id reuse
-    out: Dict[str, List[Dict[str, Any]]] = {}
-    for qid in missing_quantity_ids:
-        block = formulas_obj.get(qid, {})
-        quantity_spec_raw = None
-        items = []
-
-        # ?????????
-        # 1) ????{ qid: { quantity: {...}, formulas: [...] } }
-        # 2) ????{ qid: [ {...}, {...} ] }
-        if isinstance(block, dict):
-            quantity_spec_raw = block.get("quantity") if isinstance(block.get("quantity"), dict) else None
-            items = block.get("formulas") if isinstance(block.get("formulas"), list) else []
-        elif isinstance(block, list):
-            items = block
-
-        if not items:
-            try:
-                combined = _fetch_combined([qid])
-                block2 = combined.get(qid, {})
-                if isinstance(block2, dict):
-                    quantity_spec_raw = block2.get("quantity") if isinstance(block2.get("quantity"), dict) else quantity_spec_raw
-                    items = block2.get("formulas") if isinstance(block2.get("formulas"), list) else items
-                elif isinstance(block2, list):
-                    items = block2
-            except Exception:
-                pass
-
-        quantity_spec = _normalize_quantity_spec(
-            qid,
-            quantity_spec_raw,
-            fallback=quantity_specs.get(qid),
-        )
-
-        normalized: List[Dict[str, Any]] = []
-        for idx, it in enumerate(items, start=1):
-            if not isinstance(it, dict):
-                continue
-            formula_id = str(it.get("formula_id") or "").strip()
-            # Strict reuse: only allow ids from the provided whitelist.
-            if allowed_ids:
-                if formula_id not in allowed_ids:
-                    # Deterministic fallback: assign ids in round-robin order.
-                    formula_id = allowed_ids[(idx - 1) % len(allowed_ids)]
+        # print(f"[llm_fill_missing_quantities] _fetch_batch prompt preview: {prompt[:200]} ...")
+        obj = _call_llm_json(llm, prompt, retries=retries, debug=debug)
+        out: Dict[str, Dict[str, Any]] = {}
+        for name in names:
+            block = obj.get(name, {}) if isinstance(obj, dict) else {}
+            if isinstance(block, dict) and "quantity" in block:
+                qspec = block.get("quantity") if isinstance(block.get("quantity"), dict) else {}
             else:
-                # No whitelist available: keep original if it looks like an id, otherwise synthesize.
-                if not formula_id:
-                    formula_id = f"F_{qid}_llm_{idx}"
-            normalized.append(
-                {
-                    "quantity_name_zh": quantity_spec.get("name_zh", ""),
-                    "quantity_symbol": quantity_spec.get("symbol", ""),
-                    "quantity_symbol_latex": quantity_spec.get("symbol_latex", ""),
-                    "quantity_unit": quantity_spec.get("unit", "1"),
-                    "quantity_value": "",
-                    "formula_id": formula_id,
-                    "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} ????"),
-                    "expr": str(it.get("expr") or ""),
-                    "latex": str(it.get("latex") or ""),
-                    "source": "llm",
-                }
-            )
-        out[qid] = normalized
+                qspec = block if isinstance(block, dict) else {}
+            out[name] = _normalize_quantity_spec(name, qspec)
+        # print(f"[llm_fill_missing_quantities] _fetch_batch return: {out}")
+        return out
 
-    return out
+    def _fill_batch(names: List[str]) -> Dict[str, Dict[str, Any]]:
+        try:
+            # print(f"[llm_fill_missing_quantities] _fill_batch try, names={names}")
+            return _fetch_batch(names)
+        except Exception as e:
+            # print(f"[llm_fill_missing_quantities] _fill_batch except, fallback to empty spec, names={names}, exc={repr(e)}")
+            if len(names) > 1:
+                mid = len(names) // 2
+                left = _fill_batch(names[:mid])
+                right = _fill_batch(names[mid:])
+                return {**left, **right}
+            return {names[0]: _normalize_quantity_spec(names[0], {})}
+
+    out_by_name: Dict[str, Dict[str, Any]] = {}
+    for batch in _chunk_list(missing_quantity_name_zh, batch_size):
+        out_by_name.update(_fill_batch(batch))
+
+    if key_mode not in ("name_zh", "symbol_latex"):
+        return out_by_name
+
+    if key_mode == "name_zh":
+        return out_by_name
+
+    out_by_key: Dict[str, Dict[str, Any]] = {}
+    used: set[str] = set()
+    for name, spec in out_by_name.items():
+        key = str(spec.get("symbol_latex") or spec.get("symbol") or spec.get("id") or name).strip()
+        if not key:
+            key = name
+        base = key
+        idx = 2
+        while key in used:
+            key = f"{base}_{idx}"
+            idx += 1
+        used.add(key)
+        out_by_key[key] = spec
+
+    return out_by_key
 
 
 def main(argv: List[str] | None = None) -> int:
     import argparse
 
-    parser = argparse.ArgumentParser(description="Generate formulas for missing quantities via LLM")
+    parser = argparse.ArgumentParser(description="Generate missing quantities via LLM")
     parser.add_argument("--category", required=True)
     parser.add_argument("--extractid", required=True)
-    parser.add_argument("--missing", required=True, help="comma-separated missing quantity ids")
+    parser.add_argument("--missing", required=True, help="comma-separated missing quantity name_zh")
+    parser.add_argument("--key-mode", default="name_zh", choices=["name_zh", "symbol_latex"])
     parser.add_argument(
         "--raw-dir",
         default=str((Path(__file__).resolve().parents[1] / "data" / "raw").resolve()),
@@ -500,13 +356,13 @@ def main(argv: List[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     missing = [x.strip() for x in args.missing.split(",") if x.strip()]
-    out = generate_missing_quantity_formulas(
+    out = generate_missing_quantities(
         category=args.category,
         extractid=args.extractid,
-        missing_quantity_ids=missing,
-        existing_formula_examples=[],
+        missing_quantity_name_zh=missing,
         raw_dir=args.raw_dir,
         md_dir=args.md_dir,
+        key_mode=args.key_mode,
     )
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0

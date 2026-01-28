@@ -45,7 +45,7 @@ class FindFormulasByQuantityRequest(BaseModel):
 class FindFormulasByQuantitiesRequest(BaseModel):
     category: str
     extractid: str
-    quantity_ids: list[str]
+    quantity_name_zh: list[str]
 
 
 @app.post("/formulas/by-quantity")
@@ -67,7 +67,7 @@ def api_find_formulas_by_quantities(
     return find_formulas_by_quantities(
         category=payload.category,
         extractid=payload.extractid,
-        quantity_ids=payload.quantity_ids,
+        quantity_name_zh=payload.quantity_name_zh,
     )
 
 

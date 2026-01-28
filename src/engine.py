@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import json
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Tuple, Any, Optional
@@ -548,37 +549,29 @@ def _dir_fingerprint_ext(dir_path: str, *, patterns: Tuple[str, ...]) -> str:
     return h.hexdigest()
 
 
-@lru_cache(maxsize=128)
-def _llm_fill_missing_quantities_cached(
+def _collect_llm_formula_context(
+    *,
     category: str,
-    extractid: str,
-    missing_qids: Tuple[str, ...],
-    formulas_fp: str,
-    raw_fp: str,
-    md_fp: str,
-) -> Dict[str, List[Dict[str, Any]]]:
-    """Call LLM once per (category, extractid, missing_qids, dir fingerprints)."""
-    _ = formulas_fp, raw_fp, md_fp
-
-    # Lazy import to avoid adding heavy dependencies to engine import time.
-    from llm_fill_missing_quantities import generate_missing_quantity_formulas
-
+    extractid: str | None,
+) -> Tuple[List[str], List[Dict[str, Any]]]:
     formulas_all = load_all_formulas(_FORMULAS_DIR)
 
-    # 首选 category + extractid 精确匹配；如果数量太少，扩展到同类目全部公式，增加 LLM 可用的 id 与示例覆盖度。
-    formulas = [f for f in formulas_all if f.category == category and extractid in f.extractid]
+    if extractid:
+        formulas = [f for f in formulas_all if f.category == category and extractid in f.extractid]
+    else:
+        formulas = [f for f in formulas_all if f.category == category]
+
     if len(formulas) < 3:
         formulas = [f for f in formulas_all if f.category == category]
 
     allowed_formula_ids = [f.id for f in formulas if isinstance(f.id, str) and f.id]
-    # 如果仍然过少，继续用全局去重后的 category 公式 id 以保障 3~5 条生成空间。
     if len(allowed_formula_ids) < 5:
         seen_ids = set(allowed_formula_ids)
         for f in formulas_all:
             if f.category == category and isinstance(f.id, str) and f.id and f.id not in seen_ids:
                 allowed_formula_ids.append(f.id)
                 seen_ids.add(f.id)
-                if len(allowed_formula_ids) >= 8:  # 简单上限，避免过长
+                if len(allowed_formula_ids) >= 8:
                     break
 
     examples = [
@@ -591,10 +584,57 @@ def _llm_fill_missing_quantities_cached(
         for f in formulas[:20]
     ]
 
-    return generate_missing_quantity_formulas(
+    return allowed_formula_ids, examples
+
+
+@lru_cache(maxsize=128)
+def _llm_fill_missing_quantities_cached(
+    category: str,
+    extractid: str,
+    missing_name_zh: Tuple[str, ...],
+    raw_fp: str,
+    md_fp: str,
+) -> Dict[str, Dict[str, Any]]:
+    """Call LLM once per (category, extractid, missing_name_zh, dir fingerprints)."""
+    _ = raw_fp, md_fp
+
+    # Lazy import to avoid adding heavy dependencies to engine import time.
+    from llm_fill_missing_quantities import generate_missing_quantities
+
+    return generate_missing_quantities(
         category=category,
         extractid=extractid,
-        missing_quantity_ids=list(missing_qids),
+        missing_quantity_name_zh=list(missing_name_zh),
+        raw_dir=_RAW_DIR,
+        md_dir=_MD_DIR,
+        key_mode="name_zh",
+    )
+
+
+@lru_cache(maxsize=128)
+def _llm_fill_missing_formulas_cached(
+    category: str,
+    extractid: str,
+    quantity_specs_json: str,
+    formulas_fp: str,
+    raw_fp: str,
+    md_fp: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Call LLM once per (category, extractid, quantity_specs, dir fingerprints)."""
+    _ = formulas_fp, raw_fp, md_fp
+
+    from llm_fill_missing_formulas import generate_missing_formulas
+
+    quantities = json.loads(quantity_specs_json) if quantity_specs_json else []
+    allowed_formula_ids, examples = _collect_llm_formula_context(
+        category=category,
+        extractid=extractid,
+    )
+
+    return generate_missing_formulas(
+        category=category,
+        extractid=extractid,
+        quantities=quantities,
         existing_formula_examples=examples,
         raw_dir=_RAW_DIR,
         md_dir=_MD_DIR,
@@ -1376,11 +1416,11 @@ def find_formulas_by_quantities(
     *,
     category: str,
     extractid: Optional[str] = None,
-    quantity_ids: List[str],
+    quantity_name_zh: List[str],
 ) -> Dict[str, Any]:
     """
     Find formulas for multiple quantities in a category with specified extractid.
-    Returns results organized by category -> extractid -> quantity_ids.
+    Returns results organized by category -> extractid -> quantity display key.
     """
     if not _iter_yaml_files(_QUANTITIES_DIR):
         return _wrap_latex({
@@ -1396,19 +1436,50 @@ def find_formulas_by_quantities(
         })
 
     quantities = load_all_quantities(_QUANTITIES_DIR)
-    resolved_ids, unresolved_inputs, resolved_map, ambiguous_map = _resolve_quantity_inputs(
-        [str(x) for x in quantity_ids],
-        quantities,
-    )
-    existing_qids = [qid for qid in resolved_ids if qid in quantities]
-    missing_qids = [qid for qid in unresolved_inputs if qid not in quantities]
 
-    if not existing_qids and not missing_qids:
+    # Build name_zh index (only name_zh matching)
+    name_index: Dict[str, List[str]] = {}
+    for q in quantities.values():
+        key = _normalize_quantity_key(q.name_zh)
+        if key:
+            name_index.setdefault(key, []).append(q.id)
+
+    existing_qids: List[str] = []
+    existing_name_zh: List[str] = []
+    missing_name_zh: List[str] = []
+    resolved_map: Dict[str, str] = {}
+    ambiguous_map: Dict[str, List[str]] = {}
+    seen_qids: set[str] = set()
+    seen_names: set[str] = set()
+
+    for raw in quantity_name_zh:
+        name = str(raw).strip()
+        if not name:
+            continue
+        key = _normalize_quantity_key(name)
+        matches = name_index.get(key, [])
+        if not matches:
+            if name not in seen_names:
+                missing_name_zh.append(name)
+                seen_names.add(name)
+            continue
+        if len(matches) > 1:
+            ambiguous_map[name] = matches
+        qid = matches[0]
+        resolved_map[name] = qid
+        if name not in seen_names:
+            existing_name_zh.append(name)
+            seen_names.add(name)
+        if qid not in seen_qids:
+            existing_qids.append(qid)
+            seen_qids.add(qid)
+
+    if not existing_qids and not missing_name_zh:
         return _wrap_latex({
             "status": "error",
             "error_code": "QUANTITY_NOT_FOUND",
-            "message": "None of the requested quantity_ids were found in quantities.yaml",
-            "details": {"available": sorted(quantities.keys()), "missing": missing_qids},
+            "message": "None of the requested quantity_name_zh were found in quantities.yaml",
+            "details": {"available": sorted(quantities.keys()), "missing": missing_name_zh},
         })
 
     formulas_all = load_all_formulas(_FORMULAS_DIR)
@@ -1428,8 +1499,18 @@ def find_formulas_by_quantities(
 
     symtab = _mk_symbols(list(quantities.keys()))
 
-    # 构建按 quantity_ids 分类的结果（先填已有 quantity；missing 的后续再补）
-    quantity_results: Dict[str, List[Dict[str, Any]]] = {qid: [] for qid in existing_qids}
+    def _display_key(qid: str) -> str:
+        q = quantities.get(qid)
+        if not q:
+            return qid
+        return q.symbol_latex or q.symbol or q.id
+
+    display_key_map = {qid: _display_key(qid) for qid in existing_qids}
+    quantity_results: Dict[str, List[Dict[str, Any]]] = {
+        display_key_map[qid]: [] for qid in existing_qids
+    }
+    qid_has_formula: Dict[str, bool] = {qid: False for qid in existing_qids}
+    existing_set = set(existing_qids)
 
     for f in formulas:
         try:
@@ -1437,62 +1518,118 @@ def find_formulas_by_quantities(
         except Exception:
             continue
         vars_in_eq = _symbols_in_equation(eq, symtab)
-        
-        # 检查这个公式包含哪些 quantity_ids
-        for qid in existing_qids:
-            if qid in vars_in_eq:
-                quantity_results[qid].append({
-                    "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
-                    "quantity_value": "",
-                    "formula_id": f.id,
-                    "formula_name_zh": f.name_zh,
-                    "expr": f.expr,
-                    "latex": expr_to_latex(expr=f.expr, quantities=quantities),
-                    "source": f.source or "thesis",
-                    "extractid": list(f.extractid),
+
+        for qid in vars_in_eq:
+            if qid not in existing_set:
+                continue
+            quantity_results[display_key_map[qid]].append({
+                "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
+                "quantity_value": "",
+                "formula_id": f.id,
+                "formula_name_zh": f.name_zh,
+                "expr": f.expr,
+                "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+                "source": f.source or "thesis",
+                "extractid": list(f.extractid),
+            })
+            qid_has_formula[qid] = True
+
+    missing_formula_qids = [qid for qid, ok in qid_has_formula.items() if not ok]
+
+    def _normalize_llm_quantity_spec(name_zh: str, spec: Dict[str, Any]) -> Dict[str, Any]:
+        spec = spec or {}
+        _id = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
+        symbol = str(spec.get("symbol") or _id).strip()
+        symbol_latex = str(spec.get("symbol_latex") or symbol).strip()
+        zh = str(spec.get("name_zh") or "").strip()
+        if not zh:
+            if re.search(r"[一-鿿]", str(name_zh)):
+                zh = str(name_zh)
+            else:
+                zh = _id
+        unit = str(spec.get("unit") or "1").strip() or "1"
+        return {
+            "id": _id,
+            "symbol": symbol,
+            "symbol_latex": symbol_latex,
+            "name_zh": zh,
+            "unit": unit,
+        }
+
+    # LLM fill: missing quantities + missing formulas
+    llm_quantity_specs: Dict[str, Dict[str, Any]] = {}
+    if (missing_name_zh or missing_formula_qids) and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
+        try:
+            if missing_name_zh:
+                llm_quantity_specs = _llm_fill_missing_quantities_cached(
+                    category,
+                    extractid or "",
+                    tuple(missing_name_zh),
+                    _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
+                    _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
+                )
+
+            quantity_specs: List[Dict[str, Any]] = []
+            for qid in missing_formula_qids:
+                q = quantities.get(qid)
+                if not q:
+                    continue
+                quantity_specs.append({
+                    "id": q.id,
+                    "symbol": q.symbol,
+                    "symbol_latex": q.symbol_latex,
+                    "name_zh": q.name_zh,
+                    "unit": q.unit,
                 })
 
-    # Distinguish missing formulas vs missing quantities
-    missing_formula_qids = [qid for qid, items in quantity_results.items() if not items]
+            for name in missing_name_zh:
+                spec = llm_quantity_specs.get(name) if isinstance(llm_quantity_specs, dict) else None
+                quantity_specs.append(_normalize_llm_quantity_spec(name, spec or {}))
 
-    # LLM fill: add missing quantity_ids as new keys under results.
-    # Can be disabled via env var for offline use.
-    if (missing_qids or missing_formula_qids) and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
-        try:
-            llm_blocks = _llm_fill_missing_quantities_cached(
+            quantity_specs_sorted = sorted(quantity_specs, key=lambda x: str(x.get("id") or ""))
+            quantity_specs_json = json.dumps(quantity_specs_sorted, ensure_ascii=False, sort_keys=True)
+
+            llm_formulas = _llm_fill_missing_formulas_cached(
                 category,
-                extractid,
-                tuple(list(missing_qids) + list(missing_formula_qids)),
+                extractid or "",
+                quantity_specs_json,
                 _dir_fingerprint(_FORMULAS_DIR),
                 _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
                 _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
             )
-            for qid, formulas_list in (llm_blocks or {}).items():
-                if isinstance(formulas_list, list):
-                    target_key = qid
-                    # If LLM provides a concrete symbol/id, use it as the result key.
-                    for it in formulas_list:
-                        if isinstance(it, dict):
-                            sym = str(it.get("quantity_symbol") or "").strip()
-                            if sym:
-                                target_key = sym
-                                break
-                    quantity_results[target_key] = [
-                        {
-                            "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
-                            "quantity_value": "",
-                            **item,
-                        }
-                        for item in formulas_list
-                        if isinstance(item, dict)
-                    ]
+
+            for spec in quantity_specs_sorted:
+                qid = str(spec.get("id") or "").strip()
+                if not qid:
+                    continue
+                display_key = spec.get("symbol_latex") or spec.get("symbol") or qid
+                items = llm_formulas.get(qid, []) if isinstance(llm_formulas, dict) else []
+                if display_key not in quantity_results:
+                    quantity_results[display_key] = []
+                if not isinstance(items, list):
+                    continue
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    quantity_results[display_key].append({
+                        "quantity_name_zh": spec.get("name_zh", ""),
+                        "quantity_value": "",
+                        "formula_id": it.get("formula_id"),
+                        "formula_name_zh": it.get("formula_name_zh"),
+                        "expr": it.get("expr"),
+                        "latex": it.get("latex"),
+                        "source": it.get("source") or "llm",
+                    })
         except Exception:
-            # Keep response stable even if LLM fails.
-            for qid in missing_qids + missing_formula_qids:
-                quantity_results.setdefault(qid, [])
+            for qid in missing_formula_qids:
+                quantity_results.setdefault(display_key_map.get(qid, qid), [])
+            for name in missing_name_zh:
+                quantity_results.setdefault(name, [])
     else:
-        for qid in missing_qids + missing_formula_qids:
-            quantity_results.setdefault(qid, [])
+        for qid in missing_formula_qids:
+            quantity_results.setdefault(display_key_map.get(qid, qid), [])
+        for name in missing_name_zh:
+            quantity_results.setdefault(name, [])
 
     # Deduplicate: for each quantity's formulas, if multiple entries share the same expr,
     # keep the one with source == "expert"; otherwise keep the first.
@@ -1510,7 +1647,6 @@ def find_formulas_by_quantities(
 
         deduped: List[Dict[str, Any]] = []
         for key, items in grouped.items():
-            # Prefer expert source
             chosen = None
             for it in items:
                 if str(it.get("source", "")).lower() == "expert":
@@ -1540,8 +1676,15 @@ def find_formulas_by_quantities(
 
         quantity_results[qid] = deduped
 
-    # 构建结构：category -> extractid -> quantity_id
     results = {category: {extractid: quantity_results}}
+
+    llm_new_ids = []
+    if isinstance(llm_quantity_specs, dict):
+        for spec in llm_quantity_specs.values():
+            if isinstance(spec, dict):
+                qid = str(spec.get("id") or "").strip()
+                if qid:
+                    llm_new_ids.append(qid)
 
     return _wrap_latex({
         "status": "ok",
@@ -1551,11 +1694,7 @@ def find_formulas_by_quantities(
             "extractid_matched": extractid_matched,
         },
         "formulas_path": _FORMULAS_DIR,
-        "quantity_ids": existing_qids,
-        "missing_quantity_ids": missing_qids + missing_formula_qids,
-        "missing_quantity_inputs": missing_qids,
-        "missing_formula_quantity_ids": missing_formula_qids,
-        "quantity_id_resolved": resolved_map,
-        "quantity_id_ambiguous": ambiguous_map,
+        "existing_name_zh": existing_name_zh,
+        "missing_name_zh": missing_name_zh,
         "results": results,
     })
