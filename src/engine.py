@@ -588,6 +588,7 @@ def _collect_llm_formula_context(
 
 
 @lru_cache(maxsize=128)
+
 def _llm_fill_missing_quantities_cached(
     category: str,
     extractid: str,
@@ -595,20 +596,29 @@ def _llm_fill_missing_quantities_cached(
     raw_fp: str,
     md_fp: str,
 ) -> Dict[str, Dict[str, Any]]:
-    """Call LLM once per (category, extractid, missing_name_zh, dir fingerprints)."""
+    """
+    分批（每批最多5个）调用 generate_missing_quantities，最后合并所有结果。
+    """
     _ = raw_fp, md_fp
 
-    # Lazy import to avoid adding heavy dependencies to engine import time.
     from llm_fill_missing_quantities import generate_missing_quantities
 
-    return generate_missing_quantities(
-        category=category,
-        extractid=extractid,
-        missing_quantity_name_zh=list(missing_name_zh),
-        raw_dir=_RAW_DIR,
-        md_dir=_MD_DIR,
-        key_mode="name_zh",
-    )
+    batch_size = 5
+    names = list(missing_name_zh)
+    all_result: Dict[str, Dict[str, Any]] = {}
+    for i in range(0, len(names), batch_size):
+        batch = names[i:i+batch_size]
+        result = generate_missing_quantities(
+            category=category,
+            extractid=extractid,
+            missing_quantity_name_zh=batch,
+            raw_dir=_RAW_DIR,
+            md_dir=_MD_DIR,
+            key_mode="name_zh",
+        )
+        if isinstance(result, dict):
+            all_result.update(result)
+    return all_result
 
 
 @lru_cache(maxsize=128)
@@ -620,7 +630,9 @@ def _llm_fill_missing_formulas_cached(
     raw_fp: str,
     md_fp: str,
 ) -> Dict[str, List[Dict[str, Any]]]:
-    """Call LLM once per (category, extractid, quantity_specs, dir fingerprints)."""
+    """
+    分批（每批最多5个物理量）调用 generate_missing_formulas，最后合并所有结果。
+    """
     _ = formulas_fp, raw_fp, md_fp
 
     from llm_fill_missing_formulas import generate_missing_formulas
@@ -631,15 +643,23 @@ def _llm_fill_missing_formulas_cached(
         extractid=extractid,
     )
 
-    return generate_missing_formulas(
-        category=category,
-        extractid=extractid,
-        quantities=quantities,
-        existing_formula_examples=examples,
-        raw_dir=_RAW_DIR,
-        md_dir=_MD_DIR,
-        allowed_formula_ids=allowed_formula_ids,
-    )
+    batch_size = 5
+    all_result: Dict[str, List[Dict[str, Any]]] = {}
+    for i in range(0, len(quantities), batch_size):
+        batch = quantities[i:i+batch_size]
+        result = generate_missing_formulas(
+            category=category,
+            extractid=extractid,
+            quantities=batch,
+            existing_formula_examples=examples,
+            raw_dir=_RAW_DIR,
+            md_dir=_MD_DIR,
+            allowed_formula_ids=allowed_formula_ids,
+        )
+        if isinstance(result, dict):
+            for k, v in result.items():
+                all_result[k] = v
+    return all_result
 
 
 @lru_cache(maxsize=32)
