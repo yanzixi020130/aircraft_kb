@@ -6,8 +6,10 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Tuple, Any, Optional
+
 from pathlib import Path
 import hashlib
+from llm_generate_known_inputs import _format_source_label
 
 import yaml
 import sympy as sp
@@ -1549,6 +1551,13 @@ def find_formulas_by_quantities(
         for qid in vars_in_eq:
             if qid not in existing_set:
                 continue
+            # source字段映射
+            src_file = None
+            src_val = f.source or "thesis"
+            if src_val == "thesis":
+                if hasattr(f, 'extractid') and f.extractid:
+                    src_file = str(f.extractid[0]).replace('_quantities', '').replace('_formulas', '')
+            mapped_source = _format_source_label(src_val, src_file)
             quantity_results[display_key_map[qid]].append({
                 "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
                 "quantity_value": "",
@@ -1556,7 +1565,7 @@ def find_formulas_by_quantities(
                 "formula_name_zh": f.name_zh,
                 "expr": f.expr,
                 "latex": expr_to_latex(expr=f.expr, quantities=quantities),
-                "source": f.source or "thesis",
+                "source": mapped_source,
                 "extractid": list(f.extractid),
             })
             qid_has_formula[qid] = True
@@ -1638,6 +1647,13 @@ def find_formulas_by_quantities(
                 for it in items:
                     if not isinstance(it, dict):
                         continue
+                    # source字段映射
+                    src_file = None
+                    src_val = it.get("source") or "llm"
+                    if src_val == "thesis":
+                        if extractid:
+                            src_file = str(extractid).replace('_quantities', '').replace('_formulas', '')
+                    mapped_source = _format_source_label(src_val, src_file)
                     quantity_results[display_key].append({
                         "quantity_name_zh": spec.get("name_zh", ""),
                         "quantity_value": "",
@@ -1645,7 +1661,7 @@ def find_formulas_by_quantities(
                         "formula_name_zh": it.get("formula_name_zh"),
                         "expr": it.get("expr"),
                         "latex": it.get("latex"),
-                        "source": it.get("source") or "llm",
+                        "source": mapped_source,
                     })
         except Exception:
             for qid in missing_formula_qids:
