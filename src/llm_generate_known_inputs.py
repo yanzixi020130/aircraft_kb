@@ -26,6 +26,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 DEFAULT_CATEGORY = "expert"
 
+_GREEK_LATEX_TO_UNICODE = {
+    r"\\Alpha": "Α", r"\\Beta": "Β", r"\\Gamma": "Γ", r"\\Delta": "Δ", r"\\Epsilon": "Ε", r"\\Zeta": "Ζ", r"\\Eta": "Η", r"\\Theta": "Θ", r"\\Iota": "Ι", r"\\Kappa": "Κ", r"\\Lambda": "Λ", r"\\Mu": "Μ", r"\\Nu": "Ν", r"\\Xi": "Ξ", r"\\Omicron": "Ο", r"\\Pi": "Π", r"\\Rho": "Ρ", r"\\Sigma": "Σ", r"\\Tau": "Τ", r"\\Upsilon": "Υ", r"\\Phi": "Φ", r"\\Chi": "Χ", r"\\Psi": "Ψ", r"\\Omega": "Ω",
+    r"\\alpha": "α", r"\\beta": "β", r"\\gamma": "γ", r"\\delta": "δ", r"\\epsilon": "ε", r"\\zeta": "ζ", r"\\eta": "η", r"\\theta": "θ", r"\\iota": "ι", r"\\kappa": "κ", r"\\lambda": "λ", r"\\mu": "μ", r"\\nu": "ν", r"\\xi": "ξ", r"\\omicron": "ο", r"\\pi": "π", r"\\rho": "ρ", r"\\sigma": "σ", r"\\tau": "τ", r"\\upsilon": "υ", r"\\phi": "φ", r"\\chi": "χ", r"\\psi": "ψ", r"\\omega": "ω"
+}
+
+def filter_latex_unicode(s: str) -> str:
+    # 替换希腊字母
+    for latex, uni in _GREEK_LATEX_TO_UNICODE.items():
+        s = re.sub(latex + r'(?![a-zA-Z])', uni, s)
+    # 去除 \text{...}、\left、\right
+    s = re.sub(r'\\text\s*\{([^}]*)\}', r'\1', s)
+    s = s.replace(r'\left', '').replace(r'\right', '')
+    return s
+
 # Minimal list of math helper names to exclude when scanning identifiers.
 MATH_FUNCS = {
     "sin",
@@ -144,6 +158,7 @@ def _build_prompt(
     lines = []
     lines.append("你是一位航空航天领域的工程师，请参考 data/pdf 中的相关设计文献，为下列物理量生成合理的典型值（带单位）。")
     lines.append("请用 JSON 返回，不要额外说明。")
+    lines.append("希腊字母等符号请直接用Unicode字符（如Λ、τ、φ、Δ、α等），不要用LaTeX转义。不要使用 \\text、\\left、\\right 等LaTeX修饰符。")
     lines.append("")
     lines.append("【物理量列表（含单位）】")
     for rid in required:
@@ -346,11 +361,11 @@ def _parse_known_inputs_from_llm(text: str) -> Dict[str, str]:
         obj = json.loads(text[start : end + 1])
         if not isinstance(obj, dict):
             raise ValueError("Top-level JSON is not an object")
+        def _filter_dict(d):
+            return {k: filter_latex_unicode(str(v)) for k, v in d.items()}
         if "known_inputs" in obj and isinstance(obj["known_inputs"], dict):
-            # normalize to str values
-            return {k: str(v) for k, v in obj["known_inputs"].items()}
-        # Fallback: maybe the dict itself is known_inputs
-        return {k: str(v) for k, v in obj.items()}
+            return _filter_dict(obj["known_inputs"])
+        return _filter_dict(obj)
     except Exception as exc:  # pragma: no cover - defensive parsing
         raise ValueError(f"Failed to parse LLM output: {exc}")
 

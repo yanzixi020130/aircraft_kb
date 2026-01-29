@@ -24,6 +24,20 @@ from llm_client import LLMClient, LLMConfig
 
 
 # ==================== JSON helpers ====================
+_GREEK_LATEX_TO_UNICODE = {
+    r"\\Alpha": "Α", r"\\Beta": "Β", r"\\Gamma": "Γ", r"\\Delta": "Δ", r"\\Epsilon": "Ε", r"\\Zeta": "Ζ", r"\\Eta": "Η", r"\\Theta": "Θ", r"\\Iota": "Ι", r"\\Kappa": "Κ", r"\\Lambda": "Λ", r"\\Mu": "Μ", r"\\Nu": "Ν", r"\\Xi": "Ξ", r"\\Omicron": "Ο", r"\\Pi": "Π", r"\\Rho": "Ρ", r"\\Sigma": "Σ", r"\\Tau": "Τ", r"\\Upsilon": "Υ", r"\\Phi": "Φ", r"\\Chi": "Χ", r"\\Psi": "Ψ", r"\\Omega": "Ω",
+    r"\\alpha": "α", r"\\beta": "β", r"\\gamma": "γ", r"\\delta": "δ", r"\\epsilon": "ε", r"\\zeta": "ζ", r"\\eta": "η", r"\\theta": "θ", r"\\iota": "ι", r"\\kappa": "κ", r"\\lambda": "λ", r"\\mu": "μ", r"\\nu": "ν", r"\\xi": "ξ", r"\\omicron": "ο", r"\\pi": "π", r"\\rho": "ρ", r"\\sigma": "σ", r"\\tau": "τ", r"\\upsilon": "υ", r"\\phi": "φ", r"\\chi": "χ", r"\\psi": "ψ", r"\\omega": "ω"
+}
+
+def filter_latex_unicode(s: str) -> str:
+    # 替换希腊字母
+    for latex, uni in _GREEK_LATEX_TO_UNICODE.items():
+        s = re.sub(latex + r'(?![a-zA-Z])', uni, s)
+    # 去除 \text{...}、\left、\right
+    s = re.sub(r'\\text\s*\{([^}]*)\}', r'\1', s)
+    s = s.replace(r'\left', '').replace(r'\right', '')
+    return s
+
 def _strip_code_fences(text: str) -> str:
     text = text.strip()
     if text.startswith("```"):
@@ -110,6 +124,8 @@ _PROMPT_TEMPLATE = """
 - 对每个缺失量，给出 id / symbol / symbol_latex / name_zh / unit。
 - id / symbol / symbol_latex 必须是简短的拉丁字母/数字/下划线组合，禁止直接使用中文。
 - symbol_latex 允许下标，例如 V_{{tip,h}}、S_{{ref}}。
+- 希腊字母等符号请直接用Unicode字符（如Λ、τ、φ、Δ、α等），不要用LaTeX转义。
+- symbol_latex 不要使用 \\text、\\left、\\right 等LaTeX修饰符。
 - name_zh 必须等于输入的中文名称。
 - 若资料不足，允许保守推断，但字段不得留空。
 - unit 使用 SI 单位；无量纲写 "1"。
@@ -215,6 +231,7 @@ def _normalize_quantity_spec(name_zh: str, spec: Dict[str, Any]) -> Dict[str, An
     _id = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
     symbol = str(spec.get("symbol") or _id).strip()
     symbol_latex = str(spec.get("symbol_latex") or symbol).strip()
+    symbol_latex = filter_latex_unicode(symbol_latex)
     zh = str(spec.get("name_zh") or "").strip()
     if re.search(r"[\u4e00-\u9fff]", str(name_zh)):
         zh = str(name_zh)

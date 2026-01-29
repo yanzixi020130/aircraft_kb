@@ -45,6 +45,20 @@ def _extract_json_obj(text: str) -> Dict[str, Any]:
 
 
 # ==================== Normalization helpers ====================
+_GREEK_LATEX_TO_UNICODE = {
+    r"\\Alpha": "Α", r"\\Beta": "Β", r"\\Gamma": "Γ", r"\\Delta": "Δ", r"\\Epsilon": "Ε", r"\\Zeta": "Ζ", r"\\Eta": "Η", r"\\Theta": "Θ", r"\\Iota": "Ι", r"\\Kappa": "Κ", r"\\Lambda": "Λ", r"\\Mu": "Μ", r"\\Nu": "Ν", r"\\Xi": "Ξ", r"\\Omicron": "Ο", r"\\Pi": "Π", r"\\Rho": "Ρ", r"\\Sigma": "Σ", r"\\Tau": "Τ", r"\\Upsilon": "Υ", r"\\Phi": "Φ", r"\\Chi": "Χ", r"\\Psi": "Ψ", r"\\Omega": "Ω",
+    r"\\alpha": "α", r"\\beta": "β", r"\\gamma": "γ", r"\\delta": "δ", r"\\epsilon": "ε", r"\\zeta": "ζ", r"\\eta": "η", r"\\theta": "θ", r"\\iota": "ι", r"\\kappa": "κ", r"\\lambda": "λ", r"\\mu": "μ", r"\\nu": "ν", r"\\xi": "ξ", r"\\omicron": "ο", r"\\pi": "π", r"\\rho": "ρ", r"\\sigma": "σ", r"\\tau": "τ", r"\\upsilon": "υ", r"\\phi": "φ", r"\\chi": "χ", r"\\psi": "ψ", r"\\omega": "ω"
+}
+
+def filter_latex_unicode(s: str) -> str:
+    # 替换希腊字母
+    for latex, uni in _GREEK_LATEX_TO_UNICODE.items():
+        s = re.sub(latex + r'(?![a-zA-Z])', uni, s)
+    # 去除 \text{...}、\left、\right
+    s = re.sub(r'\\text\s*\{([^}]*)\}', r'\1', s)
+    s = s.replace(r'\left', '').replace(r'\right', '')
+    return s
+
 _LATEX_SUBSCRIPT_BREAKS = set(" +-*=(),;:^")
 
 
@@ -165,15 +179,17 @@ _PROMPT_TEMPLATE = (
     "- 输出必须为合法 JSON；最外层 key 使用 quantity_id（避免 LaTeX 反斜杠导致 JSON 解析失败）。\n"
     "- 格式规则：\n"
     "  1) expr 变量名不得包含下划线 '_'。\n"
-    "  2) 公式 latex 的下标必须用大括号完整包裹，如 Lambda_{{1/4}}、x_{{root}}。\n"
-    "  3) 若输入/资料中出现 Lambda_1/4 或 x_root，规范化为 expr: Lambda1/4 或 xroot；latex: Lambda_{{1/4}} 或 x_{{root}}。\n"
+    "  2) 公式 latex 的下标必须用大括号完整包裹，如 Λ_{{1/4}}、x_{{root}}。\n"
+    "  3) 若输入/资料中出现 Lambda_1/4 或 x_root，规范化为 expr: Lambda1/4 或 xroot；latex: Λ_{{1/4}} 或 x_{{root}}。\n"
+    "  4) 希腊字母等符号请直接用Unicode字符（如Λ、τ、φ、Δ、α等），不要用LaTeX转义。\n"
+    "  5) 不要使用 \\text、\\left、\\right 等LaTeX修饰符。\n"
     "[输出 JSON 结构]\n"
     "```\n"
     "{{\n"
     "  \"<quantity_id>\": [\n"
     "    {{\n"
     "      \"formula_id\": \"必须从允许列表中选择\",\n"
-    "      \"formula_name_zh\": \"公式中文名（若推断需标注‘候选’）\",\n"
+    "      \"formula_name_zh\": \"公式中文名（如推断需标注‘候选’）\",\n"
     "      \"expr\": \"等式文本（变量名不含下划线）\",\n"
     "      \"latex\": \"$...$\",\n"
     "      \"source\": \"llm\"\n"
@@ -252,6 +268,18 @@ def generate_missing_formulas(
         system_prompt="你是一个严格的公式抽取与建模专家。",
     )
     obj = _extract_json_obj(text)
+    # 对所有latex字段做过滤
+    def _filter_formula_block(block):
+        if isinstance(block, dict):
+            if 'latex' in block:
+                block['latex'] = filter_latex_unicode(block['latex'])
+            for v in block.values():
+                if isinstance(v, (dict, list)):
+                    _filter_formula_block(v)
+        elif isinstance(block, list):
+            for v in block:
+                _filter_formula_block(v)
+    _filter_formula_block(obj)
 
     obj_blocks: Dict[str, Any] = obj if isinstance(obj, dict) else {}
 
@@ -290,12 +318,14 @@ def generate_missing_formulas(
             else:
                 if not formula_id:
                     formula_id = f"F_{qid}_llm_{idx}"
+            latex = _normalize_formula_latex(it.get("latex") or "")
+            latex = filter_latex_unicode(latex)
             normalized.append(
                 {
                     "formula_id": formula_id,
                     "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} candidate formula"),
                     "expr": _normalize_expr(it.get("expr") or ""),
-                    "latex": _normalize_formula_latex(it.get("latex") or ""),
+                    "latex": latex,
                     "source": "llm",
                 }
             )
