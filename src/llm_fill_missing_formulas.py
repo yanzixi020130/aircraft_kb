@@ -174,7 +174,7 @@ _PROMPT_TEMPLATE = (
     "现在公式库中缺少以下物理量对应的公式，请根据 data/raw 的资料（已优先提供 Markdown 片段）补全。\n"
     "[任务]\n"
     "- 必须覆盖所有 quantities 列表中的物理量，不得遗漏。\n"
-    "- 对每个 quantity_id 给出 2~3 条公式（少于 2 条无效）。\n"
+    "- 对每个 quantity_id 给出 2~3 条公式（少于 2 条无效）。每条公式必须包含该物理量的符号（如id、symbol或symbol_latex），并充分参考该物理量的所有信息（id, symbol, symbol_latex, name_zh, unit）。\n"
     "- 尽量引用资料中出现的符号/变量；若资料不足，保守推断，并在 formula_name_zh 中标注“候选”。\n"
     "- 输出必须为合法 JSON；最外层 key 使用 quantity_id（避免 LaTeX 反斜杠导致 JSON 解析失败）。\n"
     "- 格式规则：\n"
