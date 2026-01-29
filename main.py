@@ -33,12 +33,12 @@ app = FastAPI(title="Formula Extraction API", version="1.0.0")
 class FindFormulasByQuantityRequest(BaseModel):
     category: str | None = None
     extractid: str | None = None
-    quantity_id: str | None = None
+    quantity_name_zh: str | None = None
 
     @root_validator(pre=True)
     def at_least_one(cls, values):
-        if not any(values.get(k) for k in ("category", "extractid", "quantity_id")):
-            raise ValueError("At least one of category/extractid/quantity_id is required")
+        if not any(values.get(k) for k in ("category", "extractid", "quantity_name_zh")):
+            raise ValueError("At least one of category/extractid/quantity_name_zh is required")
         return values
 
 
@@ -55,7 +55,7 @@ def api_find_formulas_by_quantity(
     return find_formulas_by_quantity(
         category=payload.category,
         extractid=payload.extractid,
-        quantity_id=payload.quantity_id,
+        quantity_name_zh=payload.quantity_name_zh,
     )
 
 

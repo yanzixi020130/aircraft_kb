@@ -1322,16 +1322,16 @@ def find_formulas_by_quantity(
     *,
     category: str | None = None,
     extractid: str | None = None,
-    quantity_id: str | None = None,
+    quantity_name_zh: str | None = None,
 ) -> Dict[str, Any]:
     """
-    Find formulas in a category that contain the given quantity id.
+    Find formulas in a category that contain the given quantity (by 中文名).
     """
-    if not any([category, extractid, quantity_id]):
+    if not any([category, extractid, quantity_name_zh]):
         return _wrap_latex({
             "status": "error",
             "error_code": "MISSING_FILTER",
-            "message": "At least one of category, extractid, quantity_id must be provided",
+            "message": "At least one of category, extractid, quantity_name_zh must be provided",
         })
 
     if not _iter_yaml_files(_QUANTITIES_DIR):
@@ -1348,13 +1348,20 @@ def find_formulas_by_quantity(
         })
 
     quantities = load_all_quantities(_QUANTITIES_DIR)
-    if quantity_id is not None and quantity_id not in quantities:
-        return _wrap_latex({
-            "status": "error",
-            "error_code": "QUANTITY_NOT_FOUND",
-            "message": f"quantity '{quantity_id}' not found in quantities.yaml",
-            "details": {"available": sorted(quantities.keys())},
-        })
+    # 支持通过 quantity_name_zh 查找 id
+    quantity_id = None
+    if quantity_name_zh is not None:
+        for qid, qspec in quantities.items():
+            if qspec.get("name_zh") == quantity_name_zh:
+                quantity_id = qid
+                break
+        if quantity_id is None:
+            return _wrap_latex({
+                "status": "error",
+                "error_code": "QUANTITY_NOT_FOUND",
+                "message": f"quantity_name_zh '{quantity_name_zh}' not found in quantities.yaml",
+                "details": {"available": [q.get("name_zh") for q in quantities.values()]},
+            })
 
     formulas_all = load_all_formulas(_FORMULAS_DIR)
     formulas = formulas_all
@@ -1366,7 +1373,7 @@ def find_formulas_by_quantity(
                 "category": category,
                 "extractid": extractid,
                 "formulas_path": _FORMULAS_DIR,
-                "quantity": quantity_id,
+                "quantity": quantity_name_zh,
                 "categories": {},
                 "message": f"category '{category}' not found in formulas.yaml",
             })
@@ -1407,7 +1414,7 @@ def find_formulas_by_quantity(
         "filters": {"category": category, "extractid": extractid},
         "extractid_matched": extractid_matched,
         "formulas_path": _FORMULAS_DIR,
-        "quantity": quantity_id,
+        "quantity": quantity_name_zh,
         "categories": grouped,
     })
 
