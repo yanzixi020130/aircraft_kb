@@ -148,63 +148,47 @@ def _chunk_list(items: List[str], size: int) -> List[List[str]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
-def _build_prompt(
-    *,
-    required: List[str],
-    quantities: Dict[str, Dict],
-    category: str,
-    formula_key: str | None,
-) -> str:
+
+
+# ==================== PROMPT TEMPLATE ====================
+_PROMPT_TEMPLATE = """
+你是航空航天/飞行器设计领域的工程师，负责为公式中的输入物理量生成合理的典型值（带单位）。
+
+[任务要求]
+- 必须为每个 required 变量生成合理的典型值，不能遗漏。
+- 结果必须包含单位，单位优先使用 quantities.yaml 中定义的单位，否则选择合适的国际单位制（SI）。
+- 希腊字母等符号请直接用Unicode字符（如Λ、τ、φ、Δ、α等），不要用LaTeX转义。
+- 不要使用 \\text、\\left、\\right 等LaTeX修饰符。
+- 数值使用阿拉伯数字，尽量 2~3 位有效数字，保持各物理量量纲一致且数量级合理。
+- 只输出 JSON，不要输出解释文字。
+
+[输入物理量列表]
+{required_block}
+
+[输出格式]
+```
+{{
+  "known_inputs": {{
+    "变量id": "<value> <unit>",
+    ...
+  }}
+}}
+```
+
+[上下文]
+- category: {category}
+- formulaKey: {formula_key}
+""".strip()
+
+# 用于生成 required_block 的辅助函数
+def _build_required_block(required: list[str], quantities: dict) -> str:
     lines = []
-    lines.append("你是一位航空航天领域的工程师，请参考 data/pdf 中的相关设计文献，为下列物理量生成合理的典型值（带单位）。")
-    lines.append("请用 JSON 返回，不要额外说明。")
-    lines.append("希腊字母等符号请直接用Unicode字符（如Λ、τ、φ、Δ、α等），不要用LaTeX转义。不要使用 \\text、\\left、\\right 等LaTeX修饰符。")
-    lines.append("")
-    lines.append("【物理量列表（含单位）】")
     for rid in required:
         if rid in quantities:
             meta = quantities[rid]
             lines.append(f"- {rid}: {meta.get('name_zh', '')}，单位: {meta.get('unit', '')}")
         else:
             lines.append(f"- {rid}: 单位请结合常识选择合适的国际单位制")
-    lines.append("")
-    lines.append("【输出格式】")
-    lines.append('{"known_inputs": {"rid": "<value> <unit>", ...}}')
-    lines.append("要求：数值使用阿拉伯数字，尽量 2~3 位有效数字，保持各物理量量纲一致且数量级合理。")
-    lines.append(f"类别: {category}, formulaKey: {formula_key}")
-    return "\n".join(lines)
-
-
-def _build_unit_prompt(*, required: List[str]) -> str:
-    lines = []
-    lines.append("Provide SI units only for the variables below.")
-    lines.append("Return pure JSON without explanations.")
-    lines.append('Format: {"units": {"rid": "<unit>", ...}}')
-    lines.append("")
-    for rid in required:
-        lines.append(f"- {rid}")
-    return "\n".join(lines)
-
-
-def _build_value_prompt(
-    *,
-    required: List[str],
-    units: Dict[str, str],
-    category: str,
-    formula_key: str | None,
-) -> str:
-    lines = []
-    lines.append("Generate reasonable numeric values for the variables below.")
-    lines.append("Return pure JSON, no explanations.")
-    lines.append('Format: {"known_inputs": {"rid": "<value> <unit>", ...}}')
-    lines.append("")
-    for rid in required:
-        unit = units.get(rid, "")
-        if unit:
-            lines.append(f"- {rid}: unit {unit}")
-        else:
-            lines.append(f"- {rid}: unit choose a reasonable SI unit")
-    lines.append(f"category: {category}, formulaKey: {formula_key}")
     return "\n".join(lines)
 
 
@@ -482,39 +466,19 @@ def generate_known_inputs_from_payload(
     batch_size = int(os.getenv("LLM_KNOWN_INPUTS_BATCH_SIZE", "8"))
     retries = int(os.getenv("LLM_KNOWN_INPUTS_RETRIES", "2"))
 
-    # First pass: fill units for unknown variables (batched to limit context).
-    unit_overrides: Dict[str, str] = {}
-    unknowns = [rid for rid in required if rid not in quantities]
-    if unknowns:
-        for batch in _chunk_list(unknowns, batch_size):
-            prompt_units = _build_unit_prompt(required=batch)
-            for _ in range(retries + 1):
-                try:
-                    unit_text = client.completion_text(user_prompt=prompt_units, temperature=0.1)
-                    unit_overrides.update(_parse_units_from_llm(unit_text))
-                    break
-                except Exception:
-                    continue
 
-    # Second pass: generate values in small batches to reduce context length.
+    # 直接合并为一条大提示词，仿照llm_fill_missing_quantities.py
     known_inputs: Dict[str, str] = {}
-    units_map: Dict[str, str] = {}
-    for rid in required:
-        if rid in quantities:
-            units_map[rid] = str(quantities[rid].get("unit", "1"))
-        elif rid in unit_overrides:
-            units_map[rid] = unit_overrides[rid]
-
     for batch in _chunk_list(required, batch_size):
-        prompt_vals = _build_value_prompt(
-            required=batch,
-            units=units_map,
+        required_block = _build_required_block(batch, quantities)
+        prompt = _PROMPT_TEMPLATE.format(
+            required_block=required_block,
             category=cat,
             formula_key=formula_key,
         )
         for _ in range(retries + 1):
             try:
-                llm_text = client.completion_text(user_prompt=prompt_vals, temperature=0.2)
+                llm_text = client.completion_text(user_prompt=prompt, temperature=0.2)
                 known_inputs.update(_parse_known_inputs_from_llm(llm_text))
                 break
             except Exception:
@@ -531,7 +495,7 @@ def generate_known_inputs_from_payload(
             known_inputs[rid] = _fallback_values([rid], quantities)[rid]
 
     # Attach canonical units if the LLM returned numeric-only values
-    known_inputs = _ensure_units(known_inputs, quantities, unit_overrides=unit_overrides)
+    known_inputs = _ensure_units(known_inputs, quantities)
 
     return known_inputs
 
