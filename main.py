@@ -29,6 +29,8 @@ from similar_extract import process_pipeline  # noqa: E402
 
 app = FastAPI(title="Formula Extraction API", version="1.0.0")
 
+PORT = os.getenv('PORT')
+
 
 class FindFormulasByQuantityRequest(BaseModel):
     category: str | None = None
@@ -264,6 +266,6 @@ if __name__ == "__main__":
     uvicorn.run(
         app='main:app', 
         host="0.0.0.0", 
-        port=1411, 
+        port= int(PORT), 
         reload=False,
     )

@@ -228,7 +228,9 @@ def _call_llm_json(
 
 def _normalize_quantity_spec(name_zh: str, spec: Dict[str, Any]) -> Dict[str, Any]:
     spec = spec or {}
-    _id = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
+    # 统一id（qid）为无下划线形式，如Lambda25
+    _id_raw = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
+    _id = re.sub(r"_", "", _id_raw)
     symbol = str(spec.get("symbol") or _id).strip()
     symbol_latex = str(spec.get("symbol_latex") or symbol).strip()
     symbol_latex = filter_latex_unicode(symbol_latex)

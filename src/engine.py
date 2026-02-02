@@ -1567,6 +1567,7 @@ def find_formulas_by_quantities(
                 "latex": expr_to_latex(expr=f.expr, quantities=quantities),
                 "source": mapped_source,
                 "extractid": list(f.extractid),
+                "target": qid,
             })
             qid_has_formula[qid] = True
 
@@ -1662,6 +1663,7 @@ def find_formulas_by_quantities(
                         "expr": it.get("expr"),
                         "latex": it.get("latex"),
                         "source": mapped_source,
+                        "target": qid,
                     })
         except Exception:
             for qid in missing_formula_qids:
