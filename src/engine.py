@@ -1258,16 +1258,47 @@ def solve_targets_auto(
         if token:
             known_vals[token] = val
 
+    def _resolve_token(raw: Any) -> str | None:
+        if raw is None:
+            return None
+        raw_str = str(raw).strip()
+        if not raw_str:
+            return None
+        clean_key = _clean_key(raw_str)
+        if clean_key in tokens:
+            return clean_key
+        tok = token_map.get(_norm_key(raw_str))
+        if tok is None:
+            tok = token_map_no_us.get(_norm_key_no_us(raw_str))
+        return tok
+
     eq_map: Dict[str, sp.Eq] = {}
     vars_map: Dict[str, List[str]] = {}
-    target_map: Dict[str, str] = {} 
+    target_map: Dict[str, str] = {}
     for qid, expr_str in exprs.items():
         try:
             eq = _parse_equation(expr_str, symtab)
         except Exception:
             continue
         eq_map[qid] = eq
-        vars_map[qid] = _symbols_in_equation(eq, symtab)
+        vars_in_eq = _symbols_in_equation(eq, symtab)
+        vars_map[qid] = vars_in_eq
+
+        override = formula_overrides.get(qid)
+        target_candidates: List[str] = []
+        if isinstance(override, dict):
+            tok = _resolve_token(override.get("target"))
+            if tok:
+                target_candidates.append(tok)
+
+        tok = _resolve_token(qid)
+        if tok:
+            target_candidates.append(tok)
+
+        for cand in target_candidates:
+            if cand in vars_in_eq:
+                target_map[qid] = cand
+                break
 
     solved: Dict[str, float] = {}      # display_key -> value（用于回填 quantity_value）
     pending = set(eq_map.keys())

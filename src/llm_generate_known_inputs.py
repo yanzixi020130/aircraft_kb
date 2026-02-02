@@ -10,7 +10,7 @@ Generate plausible known_inputs / variable specs via LLM ONLY.
   {"variables": [...], "status": "ok", "category": <str>}。
 
 关键约束：
-- selectedFormulas 中每个公式块的 target（以及 expr 左侧变量）属于“未知量/目标量”，
+- selectedFormulas 中每个公式块的 target 属于“未知量/目标量”，
   这些变量绝对不能出现在最终输出 variables 中。
 - LLM 可能会“额外输出” target 变量或其它无关变量，所以代码必须在返回前做强制裁剪。
 """
@@ -168,45 +168,23 @@ def _extract_identifiers(expr: str) -> Set[str]:
     return set(_IDENTIFIER_RE.findall(expr))
 
 
-def _lhs_identifier(expr: str) -> str | None:
-    """Return left-hand identifier of 'A = ...' if present."""
-    if not expr or not isinstance(expr, str) or "=" not in expr:
-        return None
-    left = expr.split("=", 1)[0].strip()
-    # sometimes there are spaces or parentheses; keep first identifier
-    m = _IDENTIFIER_RE.search(left)
-    return m.group(0) if m else None
-
-
 def _collect_required_inputs(selected_formulas: Dict[str, Dict[str, Any]]) -> Set[str]:
     """
     Collect required input variables from formula expressions.
 
     Rules:
-    - Exclude targets: keys of selected_formulas (targets), plus each expr's LHS variable.
-    - Collect identifiers from RHS of expr.
+    - Use the whole expr (do NOT infer by left/right side).
+    - Exclude targets: keys of selected_formulas.
     """
     targets_norm = set(_norm_varname(k) for k in selected_formulas.keys())
-
-    # Also treat each formula's LHS as forbidden (unknown/target)
-    forbidden: Set[str] = set(targets_norm)
-    for _, f in selected_formulas.items():
-        if isinstance(f, dict):
-            lhs = _lhs_identifier(str(f.get("expr", "")))
-            if lhs:
-                forbidden.add(_norm_varname(lhs))
 
     required: Set[str] = set()
     for _, f in selected_formulas.items():
         if not isinstance(f, dict):
             continue
         expr = str(f.get("expr", ""))
-        if "=" in expr:
-            rhs = expr.split("=", 1)[1]
-        else:
-            rhs = expr
-        for tok in _extract_identifiers(rhs):
-            if _norm_varname(tok) not in forbidden:
+        for tok in _extract_identifiers(expr):
+            if _norm_varname(tok) not in targets_norm:
                 required.add(tok)
 
     # remove empties
@@ -283,9 +261,8 @@ def _collect_var_formula_context(selected_formulas: Dict[str, Dict[str, Any]]) -
         if not expr:
             continue
 
-        # 取 RHS，避免 LHS 目标变量干扰
-        rhs = expr.split("=", 1)[1] if "=" in expr else expr
-        toks = sorted(set(_extract_identifiers(rhs)))
+        # Use all identifiers in the full expression; do not infer by side.
+        toks = sorted(set(_extract_identifiers(expr)))
 
         # 为每个 token 记录它在哪个 expr 出现
         for t in toks:
@@ -487,10 +464,6 @@ def generate_known_input_items_from_payload(
     targets_norm: Set[str] = set(_norm_varname(t) for t in (targets or []))
     # also forbid the targets implied by selected formulas
     targets_norm |= set(_norm_varname(k) for k in selected_norm.keys())
-    for _, f in selected_norm.items():
-        lhs = _lhs_identifier(str(f.get("expr", "")))
-        if lhs:
-            targets_norm.add(_norm_varname(lhs))
 
     # re-filter required
     required = [r for r in required if _norm_varname(r) not in targets_norm]
@@ -650,10 +623,6 @@ def generate_known_inputs_response(
     # forbidden targets (external + implied)
     forbidden_norm: Set[str] = set(_norm_varname(t) for t in (targets or []))
     forbidden_norm |= set(_norm_varname(k) for k in selected_norm.keys())
-    for _, f in selected_norm.items():
-        lhs = _lhs_identifier(str(f.get("expr", "")))
-        if lhs:
-            forbidden_norm.add(_norm_varname(lhs))
 
     # 生成 items（第四步已分流：库内只 value/context，库外全套）
     items = generate_known_input_items_from_payload(
