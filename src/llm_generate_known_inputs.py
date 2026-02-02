@@ -161,6 +161,51 @@ def _coerce_value(v: Any) -> str:
     vs = str(v).strip()
     return vs
 
+def _collect_var_formula_context(selected_formulas: Dict[str, Dict[str, Any]]) -> Dict[str, List[str]]:
+    """
+    Return: var -> [context_str, ...]
+    context_str 例： "expr: L = q * CL * S (mentions: q, CL, S)"
+    """
+    ctx: Dict[str, List[str]] = {}
+    for _, f in (selected_formulas or {}).items():
+        if not isinstance(f, dict):
+            continue
+        expr = str(f.get("expr", "") or "")
+        if not expr:
+            continue
+
+        # 取 RHS，避免 LHS 目标变量干扰
+        rhs = expr.split("=", 1)[1] if "=" in expr else expr
+        toks = sorted(set(_extract_identifiers(rhs)))
+
+        # 为每个 token 记录它在哪个 expr 出现
+        for t in toks:
+            ctx.setdefault(t, []).append(f"expr: {expr}")
+    return ctx
+
+def _build_required_block_with_context(required: List[str], var_ctx_map: Dict[str, List[str]], max_expr: int = 3) -> str:
+    lines = []
+    for rid in required:
+        exprs = var_ctx_map.get(rid, [])[:max_expr]
+        if exprs:
+            lines.append(f"- {rid}\n  - " + "\n  - ".join(exprs))
+        else:
+            lines.append(f"- {rid}\n  - (no expr context found)")
+    return "\n".join(lines)
+
+def _ensure_distinct_fallback(items: Dict[str, Dict[str, Any]]) -> None:
+    dups = _find_duplicate_name_context(items)
+    for group in dups:
+        # 从第二个开始加后缀，保证不同
+        for idx, k in enumerate(group):
+            if idx == 0:
+                continue
+            name = str(items[k].get("name", "") or "")
+            ctx = str(items[k].get("context", "") or "")
+            # 用 quantity_id 做最小差异化
+            items[k]["name"] = f"{name}（{k}）" if name else f"{k}"
+            items[k]["context"] = f"{ctx}（变量id={k}，需结合公式进一步区分）" if ctx else f"变量id={k}，需结合公式进一步区分。"
+
 
 # -------------------------
 # LLM prompt
@@ -175,24 +220,28 @@ _PROMPT_TEMPLATE = """
 - unit 使用常见国际单位制（SI）或工程常用单位；如果变量是无量纲，unit 置为 null。
 - value 尽量输出可解析的数字字符串（可以是小数或科学计数法）。
 - 绝对不要在输出中包含 targets 中列出的变量（即使你认为它们合理也不要输出）。
+- context 用中文，1~2 句话，尽量解释“是什么/代表什么/在飞行器设计里用来干嘛”，不要写成一大段科普。
+- **同一批输出中：不同变量id 不允许出现完全相同的 (name + context)。**
+  如果两个变量物理意义接近，也必须在 name 或 context 中点明差异来源（例如：属于哪个部件/哪个比值/哪个系数/在公式中与哪些量关联）。
 
 [targets（禁止输出）]
 {targets}
 
-[required（必须输出）]
+[required（必须输出,含公式上下文）]
 {required_block}
 
-[输出格式]
-```json
-{{
-  "items": {{
-    "变量id": {{
-      "name": "中文名称",
-      "value": "数值字符串",
-      "unit": "单位或null"
-    }}
-  }}
-}}
+ [输出格式]
+ ```json
+ {{
+   "items": {{
+     "变量id": {{
+       "name": "中文名称",
++      "context": "一句话定义/物理意义/使用场景（中文，尽量精炼）",
+       "value": "数值字符串",
+       "unit": "单位或null"
+     }}
+   }}
+ }}
 ```
 
 [上下文]
@@ -212,10 +261,11 @@ def _llm_generate_items(
     targets_norm: Set[str],
     category: str,
     formula_key: str | None,
+    var_ctx_map: Dict[str, List[str]] | None = None,
     temperature: float = 0.2,
     retries: int = 2,
 ) -> Dict[str, Dict[str, Any]]:
-    required_block = _build_required_block(required)
+    required_block = _build_required_block_with_context(required, var_ctx_map)
     prompt = _PROMPT_TEMPLATE.format(
         required_block=required_block,
         category=category,
@@ -248,6 +298,18 @@ def _llm_generate_items(
             continue
     raise last_err or RuntimeError("LLM generation failed")
 
+def _find_duplicate_name_context(items: Dict[str, Dict[str, Any]]) -> List[List[str]]:
+    """
+    找出 (name, context) 完全相同但 key 不同的组
+    Return: [["lambdah","lambdaht"], ...]
+    """
+    buckets: Dict[Tuple[str, str], List[str]] = {}
+    for k, v in items.items():
+        name = str((v or {}).get("name", "") or "").strip()
+        ctx = str((v or {}).get("context", "") or "").strip()
+        key = (name, ctx)
+        buckets.setdefault(key, []).append(k)
+    return [ks for (name, ctx), ks in buckets.items() if len(ks) > 1 and (name or ctx)]
 
 # -------------------------
 # Public APIs
@@ -280,6 +342,8 @@ def generate_known_input_items_from_payload(
     if not selected_norm:
         raise ValueError("selectedFormulas is empty or invalid")
 
+    var_ctx_map = _collect_var_formula_context(selected_norm)
+
     required = sorted(_collect_required_inputs(selected_norm))
 
     targets_norm: Set[str] = set(_norm_varname(t) for t in (targets or []))
@@ -307,6 +371,7 @@ def generate_known_input_items_from_payload(
             targets_norm=targets_norm,
             category=cat,
             formula_key=formula_key,
+            var_ctx_map=var_ctx_map,
             temperature=0.2,
             retries=retries,
         )
@@ -319,7 +384,29 @@ def generate_known_input_items_from_payload(
     # fill missing required with minimal placeholders (仍然不查库)
     for rid in required:
         if rid not in items:
-            items[rid] = {"name": "", "value": "1", "unit": None}
+            items[rid] = {"name": "", "context": "", "value": "1", "unit": None}
+
+        dups = _find_duplicate_name_context(items)
+    if dups:
+        conflict_vars = sorted({x for group in dups for x in group})
+
+        got2 = _llm_generate_items(
+            client,
+            required=conflict_vars,
+            targets_norm=targets_norm,
+            category=cat,
+            formula_key=formula_key,
+            var_ctx_map=var_ctx_map,      # ✅ 记得传
+            temperature=0.1,
+            retries=retries,
+            # 如果你实现了 extra_rules/extra_prompt_suffix 也可以加在这里
+        )
+
+        for k in conflict_vars:
+            if k in got2 and isinstance(got2[k], dict):
+                items[k] = got2[k]
+
+    _ensure_distinct_fallback(items)
 
     return items
 
@@ -402,6 +489,7 @@ def generate_known_inputs_response(
         name = str(spec.get("name", "") or "")
         value = _coerce_value(spec.get("value"))
         unit = _coerce_unit(spec.get("unit"))
+        context = str(spec.get("context", "") or "")
         variables.append(
             {
                 "quantity_id": qid,
@@ -409,7 +497,7 @@ def generate_known_inputs_response(
                 "name": name,
                 "value": value,
                 "unit": unit,
-                "context": "",
+                "context": context,
                 "source": "大模型生成",
             }
         )
