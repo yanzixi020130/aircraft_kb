@@ -796,22 +796,22 @@ quantities:
     unit: m
   - id: DE
     symbol: DE
-    symbol_latex: |DE|
+    symbol_latex: D_{E}
     name_zh: 距离DE
     unit: m
   - id: DC
     symbol: DC
-    symbol_latex: |DC|
+    symbol_latex: D_{C}
     name_zh: 距离DC
     unit: m
   - id: AD
     symbol: AD
-    symbol_latex: |AD|
+    symbol_latex: D_{A}
     name_zh: 距离AD
     unit: m
   - id: BD
     symbol: BD
-    symbol_latex: |BD|
+    symbol_latex: D_{B}
     name_zh: 距离BD
     unit: m
   - id: rho
