@@ -96,7 +96,7 @@ def build_quantity_index() -> dict[str, QuantityMeta]:
     """
     idx: dict[str, QuantityMeta] = {}
 
-    # 1) expert/quantities.yaml -> source="expert"
+    # 1) expert/quantities.yaml -> source="专家知识"
     if EXPERT_QUANTITIES_FILE.exists():
         doc = _safe_load_yaml(EXPERT_QUANTITIES_FILE)
         for item in _extract_quantity_items(doc):
@@ -107,7 +107,7 @@ def build_quantity_index() -> dict[str, QuantityMeta]:
                 quantity_id=qid,
                 name_zh=str(item.get("name_zh") or item.get("quantity_name_zh") or item.get("name") or "").strip() or None,
                 unit=_norm_unit(item.get("unit")),
-                source="expert",
+                source="专家知识",
             )
             idx[qid] = meta
 
@@ -138,7 +138,7 @@ DEFAULT_CATEGORY = "llm"  # 仅用于输出占位
 
 def _format_source_label(source: str, src_file: str | None = None) -> str:
     if source == "expert":
-        return "专家库"
+        return "专家知识"
     if source == "thesis":
         return f"论文库（{src_file}）" if src_file else "论文库"
     if source == "llm":

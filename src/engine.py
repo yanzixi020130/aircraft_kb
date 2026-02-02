@@ -1260,6 +1260,7 @@ def solve_targets_auto(
 
     eq_map: Dict[str, sp.Eq] = {}
     vars_map: Dict[str, List[str]] = {}
+    target_map: Dict[str, str] = {} 
     for qid, expr_str in exprs.items():
         try:
             eq = _parse_equation(expr_str, symtab)
@@ -1268,27 +1269,42 @@ def solve_targets_auto(
         eq_map[qid] = eq
         vars_map[qid] = _symbols_in_equation(eq, symtab)
 
-    solved: Dict[str, float] = {}
+    solved: Dict[str, float] = {}      # display_key -> value（用于回填 quantity_value）
     pending = set(eq_map.keys())
+
     for _ in range(max_steps):
         progressed = False
-        for qid in list(pending):
-            vars_in_eq = vars_map.get(qid, [])
-            if qid not in vars_in_eq:
-                pending.remove(qid)
+
+        for display_key in list(pending):
+            target_var = (target_map.get(display_key) or "").strip()
+
+            # 没有 target 的，直接跳过（你也可以在这里兜底用 lhs 变量）
+            if not target_var:
+                pending.remove(display_key)
                 continue
-            required = set(vars_in_eq) - {qid}
+
+            vars_in_eq = vars_map.get(display_key, [])
+
+            # target 必须出现在方程变量里，否则说明这个公式块和 target 不匹配
+            if target_var not in vars_in_eq:
+                pending.remove(display_key)
+                continue
+
+            required = set(vars_in_eq) - {target_var}
             if not required.issubset(known_vals.keys()):
                 continue
+
             try:
-                known_for_solve = {k: v for k, v in known_vals.items() if k != qid}
-                val = solve_one(eq_map[qid], known_for_solve, qid, symtab)
+                known_for_solve = {k: v for k, v in known_vals.items() if k != target_var}
+                val = solve_one(eq_map[display_key], known_for_solve, target_var, symtab)
             except Exception:
                 continue
-            solved[qid] = val
-            known_vals[qid] = val
-            pending.remove(qid)
+
+            solved[display_key] = val             # 回填到展示 key
+            known_vals[target_var] = val          # 链式：写回真实变量名
+            pending.remove(display_key)
             progressed = True
+
         if not progressed:
             break
 
