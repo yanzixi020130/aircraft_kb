@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import json
+import math
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Tuple, Any, Optional
@@ -664,6 +665,54 @@ def _llm_fill_missing_formulas_cached(
     return all_result
 
 
+def _llm_fill_missing_values(
+    *,
+    category: str,
+    extractid: str | None,
+    targets: List[Dict[str, Any]],
+    known_inputs: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if not targets:
+        return {}
+
+    from llm_fill_missing_values import generate_missing_values
+
+    try:
+        batch_size = int(os.getenv("LLM_VALUE_FILL_BATCH_SIZE", "5"))
+    except Exception:
+        batch_size = 5
+    try:
+        retries = int(os.getenv("LLM_VALUE_FILL_RETRIES", "1"))
+    except Exception:
+        retries = 1
+    try:
+        max_known = int(os.getenv("LLM_VALUE_FILL_KNOWN_INPUTS_LIMIT", "60"))
+    except Exception:
+        max_known = 60
+
+    if max_known > 0:
+        known_inputs = list(known_inputs)[:max_known]
+
+    batch_size = max(1, batch_size)
+
+    all_result: Dict[str, Any] = {}
+    for i in range(0, len(targets), batch_size):
+        batch = targets[i:i + batch_size]
+        try:
+            result = generate_missing_values(
+                category=category,
+                extractid=extractid,
+                targets=batch,
+                known_inputs=known_inputs,
+                retries=retries,
+            )
+        except Exception:
+            continue
+        if isinstance(result, dict):
+            all_result.update(result)
+    return all_result
+
+
 @lru_cache(maxsize=32)
 def _load_category_context_cached(
     category: str,
@@ -1178,6 +1227,49 @@ def solve_targets_auto(
             except Exception:
                 return None
 
+    def _parse_numeric_value_loose(raw: Any) -> float | None:
+        val = _parse_numeric_value(raw)
+        if val is not None:
+            return val
+        text = str(raw).strip()
+        if not text:
+            return None
+        m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", text)
+        if not m:
+            return None
+        try:
+            return float(m.group(0))
+        except Exception:
+            return None
+
+    def _is_missing_value(val: Any) -> bool:
+        if val is None:
+            return True
+        if isinstance(val, str) and not val.strip():
+            return True
+        return False
+
+    def _value_passes_filters(val: float) -> bool:
+        if not math.isfinite(val):
+            return False
+        max_abs_env = os.getenv("LLM_VALUE_MAX_ABS", "").strip()
+        if max_abs_env:
+            try:
+                max_abs = float(max_abs_env)
+                if abs(val) > max_abs:
+                    return False
+            except Exception:
+                pass
+        min_abs_env = os.getenv("LLM_VALUE_MIN_ABS", "").strip()
+        if min_abs_env:
+            try:
+                min_abs = float(min_abs_env)
+                if abs(val) < min_abs:
+                    return False
+            except Exception:
+                pass
+        return True
+
     def _clean_key(raw: str) -> str:
         return str(raw).replace("\\", "").replace("{", "").replace("}", "").replace("$", "").strip()
 
@@ -1362,6 +1454,79 @@ def solve_targets_auto(
         val = solved.get(qid)
         out["quantity_value"] = _fmt_quantity_value(val) if val is not None else ""
         quantity_results[qid] = [out]
+
+    missing_value_targets: Dict[str, Dict[str, Any]] = {}
+    for qid, items in quantity_results.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if not _is_missing_value(item.get("quantity_value")):
+                continue
+            expr_str = str(item.get("expr") or "").strip()
+            if not expr_str:
+                continue
+            if qid in missing_value_targets:
+                continue
+            missing_value_targets[qid] = {
+                "key": qid,
+                "target_id": str(item.get("target") or qid).strip(),
+                "name_zh": str(item.get("quantity_name_zh") or item.get("name_zh") or "").strip(),
+                "unit": str(item.get("unit") or item.get("quantity_unit") or "").strip(),
+                "formula_name_zh": str(item.get("formula_name_zh") or "").strip(),
+                "expr": expr_str,
+                "latex": str(item.get("latex") or "").strip(),
+            }
+
+    allow_llm_value_fill = (
+        os.getenv("DISABLE_LLM_VALUE_FILL", "0") != "1"
+        and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1"
+    )
+
+    if missing_value_targets and allow_llm_value_fill:
+        known_inputs_llm: List[Dict[str, Any]] = []
+        for item in known_items:
+            if not isinstance(item, dict):
+                continue
+            raw_val = item.get("value")
+            if _is_missing_value(raw_val):
+                continue
+            known_inputs_llm.append({
+                "quantity_id": item.get("quantity_id") or "",
+                "symbol": item.get("symbol"),
+                "name": item.get("name"),
+                "value": raw_val,
+                "unit": item.get("unit"),
+                "context": item.get("context"),
+                "source": item.get("source"),
+            })
+
+        try:
+            llm_raw = _llm_fill_missing_values(
+                category=category,
+                extractid=extractid,
+                targets=list(missing_value_targets.values()),
+                known_inputs=known_inputs_llm,
+            )
+        except Exception:
+            llm_raw = {}
+
+        if isinstance(llm_raw, dict) and llm_raw:
+            for key, raw_val in llm_raw.items():
+                if key not in missing_value_targets:
+                    continue
+                val = _parse_numeric_value_loose(raw_val)
+                if val is None:
+                    continue
+                if not _value_passes_filters(val):
+                    continue
+                items = quantity_results.get(key, [])
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    if _is_missing_value(item.get("quantity_value")):
+                        item["quantity_value"] = _fmt_quantity_value(val)
 
     missing_formula_qids = [qid for qid, items in quantity_results.items() if not items]
     results = {category: {extractid: quantity_results}}
