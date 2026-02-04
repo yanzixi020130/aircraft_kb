@@ -175,6 +175,7 @@ _PROMPT_TEMPLATE = (
     "[任务]\n"
     "- 必须覆盖所有 quantities 列表中的物理量，不得遗漏。\n"
     "- 对每个 quantity_id 给出 2~3 条公式（少于 2 条无效）。每条公式必须包含该物理量的符号（如id、symbol或symbol_latex），并充分参考该物理量的所有信息（id, symbol, symbol_latex, name_zh, unit）。\n"
+    "- 每条公式必须把该物理量（未知量）放在等号左边，左边只允许出现该物理量本身（例如：X = f(其他变量)）。\n"
     "- 尽量引用资料中出现的符号/变量；若资料不足，保守推断，并在 formula_name_zh 中标注“候选”。\n"
     "- 输出必须为合法 JSON；最外层 key 使用 quantity_id（避免 LaTeX 反斜杠导致 JSON 解析失败）。\n"
     "- 格式规则：\n"
