@@ -14,9 +14,9 @@ quantities:
     symbol_latex: W_{\text{fuel}}
     name_zh: 燃油重量
     unit: N
-  - id: W_empty
-    symbol: W_empty
-    symbol_latex: W_{\text{empty}}
+  - id: Wempty
+    symbol: Wempty
+    symbol_latex: W_{empty}
     name_zh: 空机重量
     unit: N
   - id: W0
@@ -528,11 +528,6 @@ quantities:
     symbol: Wf
     symbol_latex: W_f
     name_zh: 燃油重量
-    unit: N
-  - id: We
-    symbol: We
-    symbol_latex: W_e
-    name_zh: 空机重量
     unit: N
   - id: Wx
     symbol: Wx
@@ -3688,11 +3683,6 @@ quantities:
     symbol: W_o
     symbol_latex: W_o
     name_zh: 起飞重量
-    unit: N
-  - id: We
-    symbol: W_e
-    symbol_latex: W_e
-    name_zh: 空机重量
     unit: N
   - id: Wpayload
     symbol: W_{\mathrm{payload}}

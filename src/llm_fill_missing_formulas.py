@@ -182,7 +182,7 @@ _PROMPT_TEMPLATE = (
     "[任务]\n"
     "- 必须覆盖所有 quantities 列表中的物理量，不得遗漏。\n"
     "- 对每个 quantity_id 给出 2~3 条公式（少于 2 条无效）。每条公式必须包含该物理量的符号（如id、symbol或symbol_latex），并充分参考该物理量的所有信息（id, symbol, symbol_latex, name_zh, unit）。\n"
-    "- 每条公式必须把该物理量（未知量）放在等号左边，左边只允许出现该物理量本身（例如：X = f(其他变量)）。\n"
+    "- 每条公式必须把该物理量的 quantity_id 放在等号左边，左边只允许出现该 quantity_id 本身（例如：QID = f(其他变量)）。\n"
     "- 尽量引用资料中出现的符号/变量；若资料不足，保守推断，并在 formula_name_zh 中标注“候选”。\n"
     "- 输出必须为合法 JSON；最外层 key 使用 quantity_id（避免 LaTeX 反斜杠导致 JSON 解析失败）。\n"
     "- 格式规则：\n"
@@ -224,7 +224,8 @@ _PROMPT_TEMPLATE = (
 _PROMPT_TEMPLATE_STRICT = (
     _PROMPT_TEMPLATE
     + "\n\n[严格约束补充]\n"
-    + "- expr 左侧必须是该 quantity_id 的**单一符号**，不得出现系数、指数、函数或乘除（例如：只允许 \"X = ...\"）。\n"
+    + "- expr 左侧必须是该 quantity_id 的**单一符号**，不得出现系数、指数、函数或乘除（例如：只允许 \"QID = ...\"）。\n"
+    + "- 左侧只能使用 quantity_id，禁止使用 symbol 或 symbol_latex。\n"
     + "- 如果无法满足严格约束，也必须输出 2~3 条公式，但仍需保持左侧是该 quantity_id 单符号。\n"
 ).strip()
 
@@ -336,9 +337,9 @@ def generate_missing_formulas(
         return out_batch
 
     try:
-        batch_size = int(os.getenv("LLM_MISSING_FORMULAS_BATCH_SIZE", "3"))
+        batch_size = int(os.getenv("LLM_MISSING_FORMULAS_BATCH_SIZE", "2"))
     except Exception:
-        batch_size = 3
+        batch_size = 2
     batch_size = max(1, batch_size)
 
     out: Dict[str, List[Dict[str, Any]]] = {}
