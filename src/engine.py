@@ -436,9 +436,53 @@ def _symbols_in_equation(eq: sp.Eq, symtab: Dict[str, sp.Symbol]) -> List[str]:
     """
     Return variable ids (strings) that appear in eq and are in our symtab.
     """
+    return _symbols_in_expr(eq, symtab)
+
+
+def _symbols_in_expr(expr: sp.Expr, symtab: Dict[str, sp.Symbol]) -> List[str]:
+    """
+    Return variable ids (strings) that appear in expr and are in our symtab.
+    """
     symset = set(symtab.values())
     sym_to_id = {sym: qid for qid, sym in symtab.items()}
-    return [sym_to_id[s] for s in eq.free_symbols if s in symset]
+    return [sym_to_id[s] for s in expr.free_symbols if s in symset]
+
+
+def _lhs_qid(eq: sp.Eq, symtab: Dict[str, sp.Symbol]) -> Optional[str]:
+    """
+    Return quantity id if equation lhs is exactly one symbol in symtab.
+    Otherwise return None.
+    """
+    if not isinstance(eq.lhs, sp.Symbol):
+        return None
+    sym_to_id = {sym: qid for qid, sym in symtab.items()}
+    return sym_to_id.get(eq.lhs)
+
+
+def _expr_lhs_is_exact_qid(expr: str, qid: str) -> bool:
+    """
+    Check if expression is in form '<qid> = ...' with lhs being exactly qid.
+    """
+    if not expr or "=" not in expr:
+        return False
+    symtab = _mk_symbols([qid])
+    try:
+        eq = _parse_equation(expr, symtab)
+    except Exception:
+        return False
+    return isinstance(eq.lhs, sp.Symbol) and eq.lhs == symtab.get(qid)
+
+
+def _filter_llm_items_by_lhs(items: List[Dict[str, Any]], qid: str) -> List[Dict[str, Any]]:
+    """Keep only items whose expr is in form '<qid> = ...'."""
+    out: List[Dict[str, Any]] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        expr = it.get("expr") or ""
+        if _expr_lhs_is_exact_qid(expr, qid):
+            out.append(it)
+    return out
 
 
 def _parse_known_inputs_to_magnitudes(
@@ -1472,9 +1516,12 @@ def solve_targets_auto(
             missing_value_targets[qid] = {
                 "key": qid,
                 "target_id": str(item.get("target") or qid).strip(),
+                "target": str(item.get("target") or qid).strip(),
+                "formula_id": str(item.get("formula_id") or "").strip(),
+                "formula_name_zh": str(item.get("formula_name_zh") or "").strip(),
+                "quantity_name_zh": str(item.get("quantity_name_zh") or item.get("name_zh") or "").strip(),
                 "name_zh": str(item.get("quantity_name_zh") or item.get("name_zh") or "").strip(),
                 "unit": str(item.get("unit") or item.get("quantity_unit") or "").strip(),
-                "formula_name_zh": str(item.get("formula_name_zh") or "").strip(),
                 "expr": expr_str,
                 "latex": str(item.get("latex") or "").strip(),
             }
@@ -1758,30 +1805,30 @@ def find_formulas_by_quantities(
             eq = _parse_equation(f.expr, symtab)
         except Exception:
             continue
-        vars_in_eq = _symbols_in_equation(eq, symtab)
-
-        for qid in vars_in_eq:
-            if qid not in existing_set:
-                continue
-            # source字段映射
-            src_file = None
-            src_val = f.source or "thesis"
-            if src_val == "thesis":
-                if hasattr(f, 'extractid') and f.extractid:
-                    src_file = str(f.extractid[0]).replace('_quantities', '').replace('_formulas', '')
-            mapped_source = _format_source_label(src_val, src_file)
-            quantity_results[display_key_map[qid]].append({
-                "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
-                "quantity_value": "",
-                "formula_id": f.id,
-                "formula_name_zh": f.name_zh,
-                "expr": f.expr,
-                "latex": expr_to_latex(expr=f.expr, quantities=quantities),
-                "source": mapped_source,
-                "extractid": list(f.extractid),
-                "target": qid,
-            })
-            qid_has_formula[qid] = True
+        qid = _lhs_qid(eq, symtab)
+        if not qid:
+            continue
+        if qid not in existing_set:
+            continue
+        # source字段映射
+        src_file = None
+        src_val = f.source or "thesis"
+        if src_val == "thesis":
+            if hasattr(f, 'extractid') and f.extractid:
+                src_file = str(f.extractid[0]).replace('_quantities', '').replace('_formulas', '')
+        mapped_source = _format_source_label(src_val, src_file)
+        quantity_results[display_key_map[qid]].append({
+            "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else "",
+            "quantity_value": "",
+            "formula_id": f.id,
+            "formula_name_zh": f.name_zh,
+            "expr": f.expr,
+            "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+            "source": mapped_source,
+            "extractid": list(f.extractid),
+            "target": qid,
+        })
+        qid_has_formula[qid] = True
 
     missing_formula_qids = [qid for qid, ok in qid_has_formula.items() if not ok]
 
@@ -1804,6 +1851,36 @@ def find_formulas_by_quantities(
             "name_zh": zh,
             "unit": unit,
         }
+
+    def _llm_retry_strict_for_spec(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+        try:
+            from llm_fill_missing_formulas import generate_missing_formulas
+        except Exception:
+            return []
+        qid = str(spec.get("id") or "").strip()
+        if not qid:
+            return []
+        allowed_formula_ids, examples = _collect_llm_formula_context(
+            category=category,
+            extractid=extractid,
+        )
+        try:
+            result = generate_missing_formulas(
+                category=category,
+                extractid=extractid or "",
+                quantities=[spec],
+                existing_formula_examples=examples,
+                raw_dir=_RAW_DIR,
+                md_dir=_MD_DIR,
+                allowed_formula_ids=allowed_formula_ids,
+                strict_lhs=True,
+            )
+        except Exception:
+            return []
+        if isinstance(result, dict):
+            items = result.get(qid, [])
+            return items if isinstance(items, list) else []
+        return []
 
     # LLM fill: missing quantities + missing formulas
     llm_quantity_specs: Dict[str, Dict[str, Any]] = {}
@@ -1857,7 +1934,11 @@ def find_formulas_by_quantities(
                     quantity_results[display_key] = []
                 if not isinstance(items, list):
                     continue
-                for it in items:
+                filtered_items = _filter_llm_items_by_lhs(items, qid)
+                if not filtered_items and os.getenv("LLM_STRICT_LHS_RETRY", "1") != "0":
+                    retry_items = _llm_retry_strict_for_spec(spec)
+                    filtered_items = _filter_llm_items_by_lhs(retry_items, qid)
+                for it in filtered_items:
                     if not isinstance(it, dict):
                         continue
                     # source字段映射

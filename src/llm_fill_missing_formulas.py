@@ -19,6 +19,7 @@ This module is intentionally lightweight and can be used both as:
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Dict, List, Any
@@ -105,6 +106,12 @@ def _normalize_formula_latex(latex: str) -> str:
     return f"${inner}$"
 
 
+def _chunk_list(items: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]]]:
+    if size <= 0:
+        return [items]
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
 # ==================== Reference corpus ====================
 def _iter_pdfs(raw_dir: Path) -> List[Path]:
     if not raw_dir.exists():
@@ -175,6 +182,7 @@ _PROMPT_TEMPLATE = (
     "[任务]\n"
     "- 必须覆盖所有 quantities 列表中的物理量，不得遗漏。\n"
     "- 对每个 quantity_id 给出 2~3 条公式（少于 2 条无效）。每条公式必须包含该物理量的符号（如id、symbol或symbol_latex），并充分参考该物理量的所有信息（id, symbol, symbol_latex, name_zh, unit）。\n"
+    "- 每条公式必须把该物理量（未知量）放在等号左边，左边只允许出现该物理量本身（例如：X = f(其他变量)）。\n"
     "- 尽量引用资料中出现的符号/变量；若资料不足，保守推断，并在 formula_name_zh 中标注“候选”。\n"
     "- 输出必须为合法 JSON；最外层 key 使用 quantity_id（避免 LaTeX 反斜杠导致 JSON 解析失败）。\n"
     "- 格式规则：\n"
@@ -213,6 +221,13 @@ _PROMPT_TEMPLATE = (
     "只输出 JSON，不要输出解释文字。"
 ).strip()
 
+_PROMPT_TEMPLATE_STRICT = (
+    _PROMPT_TEMPLATE
+    + "\n\n[严格约束补充]\n"
+    + "- expr 左侧必须是该 quantity_id 的**单一符号**，不得出现系数、指数、函数或乘除（例如：只允许 \"X = ...\"）。\n"
+    + "- 如果无法满足严格约束，也必须输出 2~3 条公式，但仍需保持左侧是该 quantity_id 单符号。\n"
+).strip()
+
 
 def _format_existing_examples(formulas: List[Dict[str, Any]], *, limit: int = 20) -> str:
     rows = []
@@ -236,6 +251,7 @@ def generate_missing_formulas(
     md_dir: str,
     llm_cfg: LLMConfig | None = None,
     allowed_formula_ids: List[str] | None = None,
+    strict_lhs: bool = False,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Generate formulas for quantities.
 
@@ -254,82 +270,99 @@ def generate_missing_formulas(
     allowed_ids = [x for x in allowed_ids if not (x in seen or seen.add(x))]
 
     reference_corpus = build_reference_corpus(raw_dir=raw_dir, md_dir=md_dir)
-    prompt = _PROMPT_TEMPLATE.format(
-        category=category,
-        extractid=extractid,
-        quantities=json.dumps(quantities, ensure_ascii=False),
-        existing_formula_examples=_format_existing_examples(existing_formula_examples),
-        reference_corpus=reference_corpus,
-        allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
-    )
+    prompt_tmpl = _PROMPT_TEMPLATE_STRICT if strict_lhs else _PROMPT_TEMPLATE
 
-    text = llm.completion_text(
-        user_prompt=prompt,
-        system_prompt="你是一个严格的公式抽取与建模专家。",
-    )
-    obj = _extract_json_obj(text)
     # 对所有latex字段做过滤
     def _filter_formula_block(block):
         if isinstance(block, dict):
-            if 'latex' in block:
-                block['latex'] = filter_latex_unicode(block['latex'])
+            if "latex" in block:
+                block["latex"] = filter_latex_unicode(block["latex"])
             for v in block.values():
                 if isinstance(v, (dict, list)):
                     _filter_formula_block(v)
         elif isinstance(block, list):
             for v in block:
                 _filter_formula_block(v)
-    _filter_formula_block(obj)
 
-    obj_blocks: Dict[str, Any] = obj if isinstance(obj, dict) else {}
+    def _normalize_batch(q_list: List[Dict[str, Any]], obj: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+        obj_blocks: Dict[str, Any] = obj if isinstance(obj, dict) else {}
 
-    def _find_block_for_qid(qid: str) -> Any:
-        if not obj_blocks:
+        def _find_block_for_qid(qid: str) -> Any:
+            if not obj_blocks:
+                return []
+            if qid in obj_blocks:
+                return obj_blocks.get(qid, [])
+            for k, blk in obj_blocks.items():
+                if str(k).strip() == str(qid).strip():
+                    return blk
             return []
-        if qid in obj_blocks:
-            return obj_blocks.get(qid, [])
-        for k, blk in obj_blocks.items():
-            if str(k).strip() == str(qid).strip():
-                return blk
-        return []
+
+        out_batch: Dict[str, List[Dict[str, Any]]] = {}
+        for q in q_list:
+            qid = str(q.get("id") or "").strip()
+            if not qid:
+                continue
+            block = _find_block_for_qid(qid)
+            items: List[Any] = []
+
+            if isinstance(block, dict):
+                items = block.get("formulas") if isinstance(block.get("formulas"), list) else []
+            elif isinstance(block, list):
+                items = block
+
+            normalized: List[Dict[str, Any]] = []
+            for idx, it in enumerate(items, start=1):
+                if not isinstance(it, dict):
+                    continue
+                formula_id = str(it.get("formula_id") or "").strip()
+                if allowed_ids:
+                    if formula_id not in allowed_ids:
+                        formula_id = allowed_ids[(idx - 1) % len(allowed_ids)]
+                else:
+                    if not formula_id:
+                        formula_id = f"F_{qid}_llm_{idx}"
+                latex = _normalize_formula_latex(it.get("latex") or "")
+                latex = filter_latex_unicode(latex)
+                normalized.append(
+                    {
+                        "formula_id": formula_id,
+                        "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} candidate formula"),
+                        "expr": _normalize_expr(it.get("expr") or ""),
+                        "latex": latex,
+                        "source": "llm",
+                    }
+                )
+            out_batch[qid] = normalized
+        return out_batch
+
+    try:
+        batch_size = int(os.getenv("LLM_MISSING_FORMULAS_BATCH_SIZE", "3"))
+    except Exception:
+        batch_size = 3
+    batch_size = max(1, batch_size)
 
     out: Dict[str, List[Dict[str, Any]]] = {}
-
-    for q in quantities:
-        qid = str(q.get("id") or "").strip()
-        if not qid:
-            continue
-        block = _find_block_for_qid(qid)
-        items: List[Any] = []
-
-        if isinstance(block, dict):
-            items = block.get("formulas") if isinstance(block.get("formulas"), list) else []
-        elif isinstance(block, list):
-            items = block
-
-        normalized: List[Dict[str, Any]] = []
-        for idx, it in enumerate(items, start=1):
-            if not isinstance(it, dict):
-                continue
-            formula_id = str(it.get("formula_id") or "").strip()
-            if allowed_ids:
-                if formula_id not in allowed_ids:
-                    formula_id = allowed_ids[(idx - 1) % len(allowed_ids)]
+    for batch in _chunk_list(quantities, batch_size):
+        prompt = prompt_tmpl.format(
+            category=category,
+            extractid=extractid,
+            quantities=json.dumps(batch, ensure_ascii=False),
+            existing_formula_examples=_format_existing_examples(existing_formula_examples),
+            reference_corpus=reference_corpus,
+            allowed_formula_ids=json.dumps(allowed_ids, ensure_ascii=False),
+        )
+        text = llm.completion_text(
+            user_prompt=prompt,
+            system_prompt="你是一个严格的公式抽取与建模专家。",
+        )
+        obj = _extract_json_obj(text)
+        _filter_formula_block(obj)
+        batch_out = _normalize_batch(batch, obj)
+        for qid, items in batch_out.items():
+            if qid in out:
+                out[qid].extend(items)
             else:
-                if not formula_id:
-                    formula_id = f"F_{qid}_llm_{idx}"
-            latex = _normalize_formula_latex(it.get("latex") or "")
-            latex = filter_latex_unicode(latex)
-            normalized.append(
-                {
-                    "formula_id": formula_id,
-                    "formula_name_zh": str(it.get("formula_name_zh") or f"{qid} candidate formula"),
-                    "expr": _normalize_expr(it.get("expr") or ""),
-                    "latex": latex,
-                    "source": "llm",
-                }
-            )
-        out[qid] = normalized
+                out[qid] = items
 
     return out
 
