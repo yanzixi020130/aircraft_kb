@@ -11,6 +11,7 @@ FastAPI 接口服务：
 import uvicorn
 import os
 import sys
+import time
 from typing import Any, Dict
 from uuid import uuid4
 
@@ -26,10 +27,15 @@ from engine import find_formulas_by_quantity, find_formulas_by_quantities, solve
 from llm_generate_known_inputs import generate_known_inputs_from_payload  # noqa: E402
 from offline_extract import Config, process_local_pdf  # noqa: E402
 from similar_extract import process_pipeline  # noqa: E402
+from storage_utils import get_storage_client  # noqa: E402
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(title="Formula Extraction API", version="1.0.0")
 
 PORT = os.getenv('PORT')
+MINIO_PUBLIC_BUCKET = os.getenv('MINIO_PUBLIC_BUCKET') or os.getenv('MINIO_BUCKET')
 
 
 class FindFormulasByQuantityRequest(BaseModel):
@@ -195,6 +201,42 @@ async def health_check() -> dict:
     return {"status": "healthy", "service": "Formula Extraction API"}
 
 
+@app.post("/files/pdf")
+async def upload_pdf(file: UploadFile = File(...)) -> dict:
+    """上传 PDF 到 MinIO 并返回公有桶直链。"""
+    if not MINIO_PUBLIC_BUCKET:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "未配置 MINIO_PUBLIC_BUCKET（或 MINIO_BUCKET）"},
+        )
+
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "仅支持 PDF 文件上传"},
+        )
+
+    try:
+        data = await file.read()
+        key = f"pdf/{time.strftime('%Y/%m/%d')}/{uuid4().hex}.pdf"
+
+        client = get_storage_client()
+        await client.aput_object(
+            bucket=MINIO_PUBLIC_BUCKET,
+            key=key,
+            data=data,
+            content_type="application/pdf",
+            content_disposition=f'inline; filename="{file.filename}"',
+        )
+        url = client.get_public_url(MINIO_PUBLIC_BUCKET, key)
+        return {"success": True, "key": key, "url": url}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"PDF 上传失败: {str(e)}"},
+        )
+
+
 @app.post("/similar-extract")
 async def similar_extract(
     file: UploadFile = File(...),
@@ -266,6 +308,6 @@ if __name__ == "__main__":
     uvicorn.run(
         app='main:app', 
         host="0.0.0.0", 
-        port= 1411, 
+        port=int(PORT), 
         reload=False,
     )
