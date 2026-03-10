@@ -1742,7 +1742,7 @@ def find_formulas_by_quantity(
             "unit": unit,
         }
 
-    def _llm_retry_strict_for_spec(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _llm_retry_relaxed_for_spec(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
         try:
             from llm_fill_missing_formulas import generate_missing_formulas
         except Exception:
@@ -1763,7 +1763,7 @@ def find_formulas_by_quantity(
                 raw_dir=_RAW_DIR,
                 md_dir=_MD_DIR,
                 allowed_formula_ids=allowed_formula_ids,
-                strict_lhs=True,
+                strict_lhs=False,
             )
         except Exception:
             return []
@@ -1825,8 +1825,10 @@ def find_formulas_by_quantity(
                     continue
                 filtered_items = _filter_llm_items_by_lhs(items, qid)
                 if not filtered_items and os.getenv("LLM_STRICT_LHS_RETRY", "1") != "0":
-                    retry_items = _llm_retry_strict_for_spec(spec)
-                    filtered_items = _filter_llm_items_by_lhs(retry_items, qid)
+                    retry_items = _llm_retry_relaxed_for_spec(spec)
+                    # For /formulas/by-quantity retry path, accept relaxed LLM outputs
+                    # instead of enforcing lhs == qid strict filter again.
+                    filtered_items = [it for it in retry_items if isinstance(it, dict)]
                 for it in filtered_items:
                     if not isinstance(it, dict):
                         continue
