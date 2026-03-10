@@ -1606,13 +1606,16 @@ def find_formulas_by_quantity(
     quantity_name_zh: str | None = None,
 ) -> Dict[str, Any]:
     """
-    Find formulas in a category that contain the given quantity (by 中文名).
+    Find formulas for a single quantity_name_zh.
+
+    This is a single-quantity implementation following the same filtering ideas
+    as find_formulas_by_quantities, but it does not call the batch function.
     """
-    if not any([category, extractid, quantity_name_zh]):
+    if not quantity_name_zh:
         return _wrap_latex({
             "status": "error",
             "error_code": "MISSING_FILTER",
-            "message": "At least one of category, extractid, quantity_name_zh must be provided",
+            "message": "quantity_name_zh is required",
         })
 
     if not _iter_yaml_files(_QUANTITIES_DIR):
@@ -1629,74 +1632,288 @@ def find_formulas_by_quantity(
         })
 
     quantities = load_all_quantities(_QUANTITIES_DIR)
-    # 支持通过 quantity_name_zh 查找 id
-    quantity_id = None
-    if quantity_name_zh is not None:
-        for qid, qspec in quantities.items():
-            if qspec.get("name_zh") == quantity_name_zh:
-                quantity_id = qid
-                break
-        if quantity_id is None:
-            return _wrap_latex({
-                "status": "error",
-                "error_code": "QUANTITY_NOT_FOUND",
-                "message": f"quantity_name_zh '{quantity_name_zh}' not found in quantities.yaml",
-                "details": {"available": [q.get("name_zh") for q in quantities.values()]},
-            })
+
+    requested_name = str(quantity_name_zh).strip()
+
+    # Build name_zh index (only name_zh matching, consistent with batch API).
+    name_index: Dict[str, List[str]] = {}
+    for q in quantities.values():
+        key = _normalize_quantity_key(q.name_zh)
+        if key:
+            name_index.setdefault(key, []).append(q.id)
+
+    existing_qids: List[str] = []
+    existing_name_zh: List[str] = []
+    missing_name_zh: List[str] = []
+    resolved_map: Dict[str, str] = {}
+    ambiguous_map: Dict[str, List[str]] = {}
+
+    key = _normalize_quantity_key(requested_name)
+    matches = name_index.get(key, []) if key else []
+    if not matches:
+        missing_name_zh.append(requested_name)
+    else:
+        if len(matches) > 1:
+            ambiguous_map[requested_name] = matches
+        qid = matches[0]
+        resolved_map[requested_name] = qid
+        existing_name_zh.append(requested_name)
+        existing_qids.append(qid)
 
     formulas_all = load_all_formulas(_FORMULAS_DIR)
-    formulas = formulas_all
-    if category is not None:
-        formulas = [f for f in formulas if f.category == category]
-        if not formulas:
-            return _wrap_latex({
-                "status": "ok",
-                "category": category,
-                "extractid": extractid,
-                "formulas_path": _FORMULAS_DIR,
-                "quantity": quantity_name_zh,
-                "categories": {},
-                "message": f"category '{category}' not found in formulas.yaml",
-            })
-    if extractid is not None:
-        formulas_before_extractid = formulas
-        formulas = [f for f in formulas if extractid in f.extractid]
-        extractid_matched = bool(formulas)
-        if not formulas:
-            # Fallback: search in the overall formulas for the current category.
-            formulas = formulas_before_extractid
-    else:
-        extractid_matched = True
+    formulas = [f for f in formulas_all if f.category == category] if category else formulas_all
+    if category and not formulas:
+        return _wrap_latex({
+            "status": "error",
+            "error_code": "CATEGORY_NOT_FOUND",
+            "message": f"category '{category}' not found in formulas.yaml",
+        })
+
+    extractid_matched = True
+    if extractid:
+        formulas_exact = [f for f in formulas if extractid in f.extractid]
+        extractid_matched = bool(formulas_exact)
+        formulas = formulas_exact if formulas_exact else formulas
+
     symtab = _mk_symbols(list(quantities.keys()))
 
-    grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+    def _display_key(qid: str) -> str:
+        q = quantities.get(qid)
+        if not q:
+            return qid
+        return q.symbol_latex or q.symbol or q.id
+
+    display_key_map = {qid: _display_key(qid) for qid in existing_qids}
+    quantity_results: Dict[str, List[Dict[str, Any]]] = {
+        display_key_map[qid]: [] for qid in existing_qids
+    }
+    qid_has_formula: Dict[str, bool] = {qid: False for qid in existing_qids}
+    existing_set = set(existing_qids)
+
     for f in formulas:
         try:
             eq = _parse_equation(f.expr, symtab)
         except Exception:
             continue
-        vars_in_eq = _symbols_in_equation(eq, symtab)
-        if quantity_id is not None and quantity_id not in vars_in_eq:
+        qid = _lhs_qid(eq, symtab)
+        if not qid:
+            continue
+        if qid not in existing_set:
             continue
 
-        cat_key = f.category or ""
-        ext_key = ",".join(f.extractid) if f.extractid else ""
-        grouped.setdefault(cat_key, {}).setdefault(ext_key, []).append(
-            {
-                "formula_id": f.id,
-                "formula_name_zh": f.name_zh,
-                "expr": f.expr,
-                "latex": expr_to_latex(expr=f.expr, quantities=quantities),
-            }
+        src_file = None
+        src_val = f.source or "thesis"
+        if src_val == "thesis":
+            if hasattr(f, "extractid") and f.extractid:
+                src_file = str(f.extractid[0]).replace("_quantities", "").replace("_formulas", "")
+        mapped_source = _format_source_label(src_val, src_file)
+        quantity_results[display_key_map[qid]].append({
+            "quantity_name_zh": quantities.get(qid).name_zh if qid in quantities else requested_name,
+            "quantity_value": "",
+            "formula_id": f.id,
+            "formula_name_zh": f.name_zh,
+            "expr": f.expr,
+            "latex": expr_to_latex(expr=f.expr, quantities=quantities),
+            "source": mapped_source,
+            "extractid": list(f.extractid),
+            "target": qid,
+        })
+        qid_has_formula[qid] = True
+
+    missing_formula_qids = [qid for qid, ok in qid_has_formula.items() if not ok]
+
+    def _normalize_llm_quantity_spec(name_zh: str, spec: Dict[str, Any]) -> Dict[str, Any]:
+        spec = spec or {}
+        _id = str(spec.get("id") or spec.get("symbol") or name_zh).strip()
+        symbol = str(spec.get("symbol") or _id).strip()
+        symbol_latex = str(spec.get("symbol_latex") or symbol).strip()
+        zh = str(spec.get("name_zh") or "").strip()
+        if not zh:
+            if re.search(r"[一-鿿]", str(name_zh)):
+                zh = str(name_zh)
+            else:
+                zh = _id
+        unit = str(spec.get("unit") or "1").strip() or "1"
+        return {
+            "id": _id,
+            "symbol": symbol,
+            "symbol_latex": symbol_latex,
+            "name_zh": zh,
+            "unit": unit,
+        }
+
+    def _llm_retry_strict_for_spec(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+        try:
+            from llm_fill_missing_formulas import generate_missing_formulas
+        except Exception:
+            return []
+        qid = str(spec.get("id") or "").strip()
+        if not qid:
+            return []
+        allowed_formula_ids, examples = _collect_llm_formula_context(
+            category=category or "",
+            extractid=extractid,
         )
+        try:
+            result = generate_missing_formulas(
+                category=category or "",
+                extractid=extractid or "",
+                quantities=[spec],
+                existing_formula_examples=examples,
+                raw_dir=_RAW_DIR,
+                md_dir=_MD_DIR,
+                allowed_formula_ids=allowed_formula_ids,
+                strict_lhs=True,
+            )
+        except Exception:
+            return []
+        if isinstance(result, dict):
+            items = result.get(qid, [])
+            return items if isinstance(items, list) else []
+        return []
+
+    llm_quantity_specs: Dict[str, Dict[str, Any]] = {}
+    if (missing_name_zh or missing_formula_qids) and os.getenv("DISABLE_LLM_MISSING_FILL", "0") != "1":
+        try:
+            if missing_name_zh:
+                llm_quantity_specs = _llm_fill_missing_quantities_cached(
+                    category or "",
+                    extractid or "",
+                    tuple(missing_name_zh),
+                    _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
+                    _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
+                )
+
+            quantity_specs: List[Dict[str, Any]] = []
+            for qid in missing_formula_qids:
+                q = quantities.get(qid)
+                if not q:
+                    continue
+                quantity_specs.append({
+                    "id": q.id,
+                    "symbol": q.symbol,
+                    "symbol_latex": q.symbol_latex,
+                    "name_zh": q.name_zh,
+                    "unit": q.unit,
+                })
+
+            for name in missing_name_zh:
+                spec = llm_quantity_specs.get(name) if isinstance(llm_quantity_specs, dict) else None
+                quantity_specs.append(_normalize_llm_quantity_spec(name, spec or {}))
+
+            quantity_specs_sorted = sorted(quantity_specs, key=lambda x: str(x.get("id") or ""))
+            quantity_specs_json = json.dumps(quantity_specs_sorted, ensure_ascii=False, sort_keys=True)
+
+            llm_formulas = _llm_fill_missing_formulas_cached(
+                category or "",
+                extractid or "",
+                quantity_specs_json,
+                _dir_fingerprint(_FORMULAS_DIR),
+                _dir_fingerprint_ext(_RAW_DIR, patterns=("*.pdf",)),
+                _dir_fingerprint_ext(_MD_DIR, patterns=("*.md",)),
+            )
+
+            for spec in quantity_specs_sorted:
+                qid = str(spec.get("id") or "").strip()
+                if not qid:
+                    continue
+                display_key = spec.get("symbol_latex") or spec.get("symbol") or qid
+                items = llm_formulas.get(qid, []) if isinstance(llm_formulas, dict) else []
+                if display_key not in quantity_results:
+                    quantity_results[display_key] = []
+                if not isinstance(items, list):
+                    continue
+                filtered_items = _filter_llm_items_by_lhs(items, qid)
+                if not filtered_items and os.getenv("LLM_STRICT_LHS_RETRY", "1") != "0":
+                    retry_items = _llm_retry_strict_for_spec(spec)
+                    filtered_items = _filter_llm_items_by_lhs(retry_items, qid)
+                for it in filtered_items:
+                    if not isinstance(it, dict):
+                        continue
+                    src_file = None
+                    src_val = it.get("source") or "llm"
+                    if src_val == "thesis" and extractid:
+                        src_file = str(extractid).replace("_quantities", "").replace("_formulas", "")
+                    mapped_source = _format_source_label(src_val, src_file)
+                    quantity_results[display_key].append({
+                        "quantity_name_zh": spec.get("name_zh", ""),
+                        "quantity_value": "",
+                        "formula_id": it.get("formula_id"),
+                        "formula_name_zh": it.get("formula_name_zh"),
+                        "expr": it.get("expr"),
+                        "latex": it.get("latex"),
+                        "source": mapped_source,
+                        "target": qid,
+                    })
+        except Exception:
+            for qid in missing_formula_qids:
+                quantity_results.setdefault(display_key_map.get(qid, qid), [])
+            for name in missing_name_zh:
+                quantity_results.setdefault(name, [])
+    else:
+        for qid in missing_formula_qids:
+            quantity_results.setdefault(display_key_map.get(qid, qid), [])
+        for name in missing_name_zh:
+            quantity_results.setdefault(name, [])
+
+    # Deduplicate formula candidates by expr then by latex, preferring expert sources.
+    def _norm_expr_dedup(s: str) -> str:
+        return re.sub(r"\s+", "", str(s).replace("^", "**"))
+
+    for qid, flist in list(quantity_results.items()):
+        if not isinstance(flist, list) or not flist:
+            continue
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        for item in flist:
+            expr_str = item.get("expr", "")
+            key_expr = _norm_expr_dedup(expr_str)
+            grouped.setdefault(key_expr, []).append(item)
+
+        deduped: List[Dict[str, Any]] = []
+        for items in grouped.values():
+            chosen = None
+            for it in items:
+                if str(it.get("source", "")).lower() == "expert":
+                    chosen = it
+                    break
+            if chosen is None:
+                chosen = items[0]
+            deduped.append(chosen)
+
+        if len(deduped) > 1:
+            latex_groups: Dict[str, List[Dict[str, Any]]] = {}
+            for it in deduped:
+                lx = str(it.get("latex", ""))
+                latex_groups.setdefault(lx, []).append(it)
+            deduped2: List[Dict[str, Any]] = []
+            for items in latex_groups.values():
+                chosen = None
+                for it in items:
+                    if str(it.get("source", "")).lower() == "expert":
+                        chosen = it
+                        break
+                if chosen is None:
+                    chosen = items[0]
+                deduped2.append(chosen)
+            deduped = deduped2
+
+        quantity_results[qid] = deduped
+
+    result_category = category or ""
+    result_extractid = extractid or ""
+    results = {result_category: {result_extractid: quantity_results}}
 
     return _wrap_latex({
         "status": "ok",
-        "filters": {"category": category, "extractid": extractid},
-        "extractid_matched": extractid_matched,
+        "filters": {
+            "category": category,
+            "extractid": extractid,
+            "extractid_matched": extractid_matched,
+        },
         "formulas_path": _FORMULAS_DIR,
-        "quantity": quantity_name_zh,
-        "categories": grouped,
+        "existing_name_zh": existing_name_zh,
+        "missing_name_zh": missing_name_zh,
+        "results": results,
     })
 
 

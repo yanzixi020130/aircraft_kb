@@ -17,14 +17,13 @@ from uuid import uuid4
 
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel
 
 # Allow importing from src/
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, "src"))
 
-from engine import find_formulas_by_quantity, find_formulas_by_quantities, solve_targets_auto, load_all_quantities  # noqa: E402
-from llm_generate_known_inputs import generate_known_inputs_from_payload  # noqa: E402
+from engine import find_formulas_by_quantity, find_formulas_by_quantities, solve_targets_auto  # noqa: E402
 from offline_extract import Config, process_local_pdf  # noqa: E402
 from similar_extract import process_pipeline  # noqa: E402
 from storage_utils import get_storage_client  # noqa: E402
@@ -39,15 +38,9 @@ MINIO_PUBLIC_BUCKET = os.getenv('MINIO_PUBLIC_BUCKET') or os.getenv('MINIO_BUCKE
 
 
 class FindFormulasByQuantityRequest(BaseModel):
-    category: str | None = None
-    extractid: str | None = None
-    quantity_name_zh: str | None = None
-
-    @root_validator(pre=True)
-    def at_least_one(cls, values):
-        if not any(values.get(k) for k in ("category", "extractid", "quantity_name_zh")):
-            raise ValueError("At least one of category/extractid/quantity_name_zh is required")
-        return values
+    category: str
+    extractid: str
+    quantity_name_zh: str
 
 
 class FindFormulasByQuantitiesRequest(BaseModel):
