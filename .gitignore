@@ -2,3 +2,6 @@
 quantities/
 formulas/
 data/
+__pycache__/
+test/
+*.pyc
