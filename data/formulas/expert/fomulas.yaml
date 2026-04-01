@@ -25,13 +25,13 @@ formulas:
 
   - id: F_lift_equals_weight
     name_zh: "平飞条件下升力等于重量"
-    expr: L = W0 * g
+    expr: L = W0 
     extractid: plane_design
     category: tilt_rotor
 
   - id: F_reynolds_number
     name_zh: "雷诺数定义公式"
-    expr: Re = rhoc * Vc * b / mu
+    expr: Re = rhoc * Vc * c / mu
     extractid: plane_design
     category: tilt_rotor
 
@@ -67,7 +67,7 @@ formulas:
 
   - id: F_tip_chord_from_root_chord_taper
     name_zh: 梯形翼翼梢弦长计算公式
-    expr: Ct = Cr / lambda
+    expr: Ct = Cr * lambda
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
@@ -85,13 +85,13 @@ formulas:
 
   - id: F_fuselage_length_from_mass
     name_zh: 机身长度与质量的经验计算公式
-    expr: Lf = kl * W0^(1/3)
+    expr: Lf = kl * (W0 / g)^(1/3)
     extractid: plane_design
     category: tilt_rotor
 
   - id: F_fuselage_diameter_from_mass
     name_zh: 机身直径与质量的经验计算公式
-    expr: Df = kd * W0^(1/3)
+    expr: Df = kd * (W0 / g)^(1/3)
     extractid: plane_design
     category: tilt_rotor
 
@@ -133,7 +133,7 @@ formulas:
 
   - id: F_oswald_efficiency_from_aspect_ratio
     name_zh: 奥斯瓦尔效率因子经验计算公式
-    expr: e = 1.78 * (1 - 0.045 * A^0.68) - 0.46
+    expr: e = 1.78 * (1 - 0.045 * A^0.68) - 0.64
     extractid: Others
     category: tilt_rotor
   
@@ -149,7 +149,7 @@ formulas:
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
-  - id: F_drag_polar_parabolic
+  - id: F_drag_polar_optimal_point
     name_zh: 抛物线最优阻力极线公式
     expr: CDstar = CD0 + k * CLstar^2
     extractid: Others
@@ -193,7 +193,7 @@ formulas:
 
   - id: F_power_to_weight_required_climb
     name_zh: 爬升工况单位重量所需功率公式
-    expr: PreqW0climb = (1 / (etat * etad * etalj)) * ((q * Vc * Swing / W0) * (CL + k * g^2 * W0^2 / (q^2 * Swing^2)) + V0 * sin(phi))
+    expr: Preq_climb = (D * Vc + W0 * ROC) / eta
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
@@ -211,7 +211,7 @@ formulas:
 
   - id: F_single_propeller_vertical_acceleration_thrust
     name_zh: 单个螺旋桨垂直加速所需拉力公式
-    expr: Tla = (W0 / np) * (g + a)
+    expr: Tla = (W0 / np) * (1 + a / g)
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
@@ -234,14 +234,14 @@ formulas:
     category: tilt_rotor
 
   - id: F_max_load_power_from_max_thrust_efficiency
-    name_zh: 最大拉力条件下负载功率计算公式
-    expr: Ploadmax = Tmax / etampt
+    name_zh: 定速飞行条件下负载功率计算公式
+    expr: Ploadmax = Tmax * V / etampt
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
   - id: F_max_single_propeller_load_power
-    name_zh: 单个螺旋桨最大拉力工况下负载功率公式
-    expr: Ploadmax1 = Tla / etampt
+    name_zh: 单个螺旋桨负载功率计算公式
+    expr: Ploadmax1 = Tla * V / etampt
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
@@ -253,13 +253,13 @@ formulas:
 
   - id: F_cruise_power_from_lift_to_drag_ratio
     name_zh: 巡航状态所需功率计算公式
-    expr: Pvc = (W0 * g / Kvc) * Vc
+    expr: Pvc = (W0  / Kvc) * Vc
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
   - id: F_cruise_max_speed_power
     name_zh: 最大巡航速度条件下所需功率公式
-    expr: Pvc_max = (W0 * g / Kvc) * Vcmax
+    expr: Pvc_max = (W0  / Kvc) * Vcmax
     extractid: Flight_Performance_Analysis_Extraction_Parameters
     category: tilt_rotor
 
